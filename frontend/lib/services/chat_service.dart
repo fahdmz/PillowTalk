@@ -2,10 +2,21 @@ import '../models/chat_message.dart';
 import 'api_client.dart';
 
 class StartedSession {
-  StartedSession({required this.sessionId, required this.greeting});
+  StartedSession({
+    required this.sessionId,
+    required this.sessionStatus,
+    required this.messages,
+  });
 
   final String sessionId;
-  final ChatMessage greeting;
+
+  /// 'active' (can keep chatting) or 'completed' (today's check-in of this
+  /// type already ran to completion — this is a read-only history).
+  final String sessionStatus;
+
+  /// Full conversation so far: just the greeting for a brand-new session,
+  /// or the whole history when resuming one already in progress today.
+  final List<ChatMessage> messages;
 }
 
 class SendMessageResult {
@@ -35,10 +46,18 @@ class ChatService {
     final json = await _api.post('/chat/start', body: {
       'checkin_mode': checkinMode,
       'language': language,
+      // The backend decides "today" using this offset so a check-in
+      // resumes/resets at the user's actual local midnight, not the
+      // server's UTC one.
+      'timezone_offset_minutes': DateTime.now().timeZoneOffset.inMinutes,
     }) as Map<String, dynamic>;
+    final messages = (json['messages'] as List)
+        .map((m) => _messageFromJson(m as Map<String, dynamic>))
+        .toList();
     return StartedSession(
       sessionId: json['session_id'] as String,
-      greeting: _messageFromJson(json['greeting'] as Map<String, dynamic>),
+      sessionStatus: json['session_status'] as String,
+      messages: messages,
     );
   }
 

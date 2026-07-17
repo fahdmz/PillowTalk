@@ -30,6 +30,14 @@ String formatMonthYear(DateTime date, AppLanguage lang) {
   return '${months[date.month - 1]} ${date.year}';
 }
 
+/// Numeric slash-form date for the recap detail header — "7/17/2026"
+/// (month/day/year) in English, "17/7/2026" (day/month/year) in Indonesian.
+String formatSlashDate(DateTime date, AppLanguage lang) {
+  return lang == AppLanguage.en
+      ? '${date.month}/${date.day}/${date.year}'
+      : '${date.day}/${date.month}/${date.year}';
+}
+
 const _weekdaysEn = [
   'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
 ];

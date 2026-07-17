@@ -1,0 +1,392 @@
+-- Seed realistic PillowTalk stats data for this Supabase auth user:
+-- 5526818c-4a97-4fcc-a756-bfa70bf96316
+--
+-- Run this in the Supabase SQL Editor after schema.sql,
+-- ai_emotional_memory.sql, and chat_idempotency.sql have been applied.
+--
+-- This tests the statistics/dashboard path, not the ML classifier itself:
+-- emotion/source/confidence values below are hand-selected. To test the
+-- classifier too, send real messages through POST /chat/message.
+
+begin;
+
+do $$
+declare
+  target_user_id uuid := '5526818c-4a97-4fcc-a756-bfa70bf96316';
+begin
+  if not exists (select 1 from auth.users where id = target_user_id) then
+    raise exception 'No auth.users row found for %', target_user_id;
+  end if;
+end
+$$;
+
+-- Make reruns safe: remove only rows from prior runs of this exact seed.
+delete from public.sleep_factor_occurrences occurrence
+where occurrence.session_id in (
+  select id
+  from public.chat_sessions
+  where user_id = '5526818c-4a97-4fcc-a756-bfa70bf96316'
+    and preview like '[seed UUD stats]%'
+);
+
+delete from public.chat_sessions
+where user_id = '5526818c-4a97-4fcc-a756-bfa70bf96316'
+  and preview like '[seed UUD stats]%';
+
+create temporary table seed_stats_rows on commit drop as
+with seed_rows as (
+  select *
+  from (
+    values
+      (
+        1, 6, 'night',
+        'I had a coffee after 6pm because of a work deadline and now my head will not stop racing.',
+        'That sounds like it has been weighing on you. Want to tell me more?',
+        'sadness', 0.780,
+        array['work', 'sleep_substances']::text[],
+        array['caffeine']::text[],
+        null::numeric, null::time
+      ),
+      (
+        2, 6, 'morning',
+        'I slept for 6 hours total and woke up at 6:45, felt pretty rough.',
+        'Thanks for sharing. What time did you get into bed, and about how long did it take to fall asleep?',
+        'sadness', 0.710,
+        array['sleep']::text[],
+        array[]::text[],
+        6.00::numeric, '06:45'::time
+      ),
+      (
+        3, 5, 'night',
+        'Good day today actually, I am really happy. We closed out a project early. Had a coffee around 8pm to celebrate though.',
+        'I hear you. Sometimes naming it helps it feel lighter. Anything else on your mind?',
+        'joy', 0.830,
+        array['sleep_substances']::text[],
+        array['caffeine']::text[],
+        null::numeric, null::time
+      ),
+      (
+        4, 4, 'night',
+        'I am honestly furious. My manager moved the deadline up again and I have a headache from the stress.',
+        'That sounds like it has been weighing on you. Want to tell me more?',
+        'anger', 0.800,
+        array['work', 'health']::text[],
+        array[]::text[],
+        null::numeric, null::time
+      ),
+      (
+        5, 4, 'morning',
+        'I slept for 7 hours and woke up at 6, feeling pretty neutral about the day ahead.',
+        'Got it. Did you wake up during the night? If so, about how many times, and for how long in total?',
+        'neutral', 0.660,
+        array['sleep']::text[],
+        array[]::text[],
+        7.00::numeric, '06:00'::time
+      ),
+      (
+        6, 3, 'night',
+        'Had a couple glasses of wine with my partner tonight, and I also smoked a cigarette outside which I am not proud of.',
+        'Thank you for sharing that. Let us set it down for tonight.',
+        'fear', 0.690,
+        array['relationship', 'sleep_substances']::text[],
+        array['alcohol', 'nicotine']::text[],
+        null::numeric, null::time
+      ),
+      (
+        7, 2, 'night',
+        'Another coffee after dinner because of work again, I really need to stop doing this before bed.',
+        'That sounds like it has been weighing on you. Want to tell me more?',
+        'sadness', 0.740,
+        array['work', 'sleep_substances']::text[],
+        array['caffeine']::text[],
+        null::numeric, null::time
+      ),
+      (
+        8, 2, 'morning',
+        'I slept for 5 hours, woke up at 5:30, and my body still feels tired.',
+        'Thanks. What time did you finally wake up, and how would you rate your sleep quality?',
+        'sadness', 0.700,
+        array['sleep']::text[],
+        array[]::text[],
+        5.00::numeric, '05:30'::time
+      ),
+      (
+        9, 1, 'night',
+        'I took melatonin again tonight because I am scared I will not fall asleep like last week. Also had a glass of wine before bed.',
+        'I hear you. Sometimes naming it helps it feel lighter. Anything else on your mind?',
+        'fear', 0.720,
+        array['health', 'sleep_substances']::text[],
+        array['alcohol', 'sleep_medication']::text[],
+        null::numeric, null::time
+      ),
+      (
+        10, 0, 'morning',
+        'No coffee, no alcohol yesterday, just a normal quiet evening. I slept for 8 hours and woke up at 7.',
+        'That is really useful, thank you. Have a gentle day.',
+        'neutral', 0.680,
+        array['sleep']::text[],
+        array[]::text[],
+        8.00::numeric, '07:00'::time
+      )
+  ) as row(
+    seed_order,
+    day_offset,
+    checkin_mode,
+    user_text,
+    ai_text,
+    emotion,
+    confidence,
+    domains,
+    sleep_substances,
+    sleep_hours,
+    wake_time
+  )
+)
+  select
+    gen_random_uuid() as session_id,
+    gen_random_uuid() as user_message_id,
+    '5526818c-4a97-4fcc-a756-bfa70bf96316'::uuid as user_id,
+    seed_rows.*,
+    (
+      (current_date - seed_rows.day_offset)::timestamp
+      + case
+          when seed_rows.checkin_mode = 'night' then time '15:00'
+          else time '00:00'
+        end
+    ) at time zone 'UTC' as started_at
+  from seed_rows;
+
+insert into public.chat_sessions (
+  id,
+  user_id,
+  checkin_mode,
+  status,
+  step_index,
+  is_crisis,
+  preview,
+  started_at,
+  ended_at
+)
+select
+  session_id,
+  user_id,
+  checkin_mode,
+  'completed',
+  1,
+  false,
+  '[seed UUD stats] ' || left(user_text, 80),
+  started_at,
+  started_at + interval '6 minutes'
+from seed_stats_rows;
+
+insert into public.chat_messages (
+  id,
+  session_id,
+  sender,
+  text,
+  is_crisis,
+  created_at
+)
+select
+  user_message_id,
+  session_id,
+  'user',
+  user_text,
+  false,
+  started_at + interval '1 minute'
+from seed_stats_rows;
+
+insert into public.chat_messages (
+  session_id,
+  sender,
+  text,
+  is_crisis,
+  created_at
+)
+select
+  session_id,
+  'ai',
+  ai_text,
+  false,
+  started_at + interval '2 minutes'
+from seed_stats_rows;
+
+insert into public.message_analyses (
+  message_id,
+  session_id,
+  emotion,
+  emotion_scores,
+  domains,
+  sleep_substances,
+  sleep_hours,
+  wake_time,
+  confidence,
+  source,
+  risk_level,
+  model_id,
+  model_revision,
+  created_at
+)
+select
+  user_message_id,
+  session_id,
+  emotion,
+  jsonb_build_object(emotion, confidence),
+  domains,
+  sleep_substances,
+  sleep_hours,
+  wake_time,
+  confidence,
+  'local',
+  'none',
+  'seed-sql',
+  'seed-v1',
+  started_at + interval '1 minute'
+from seed_stats_rows;
+
+insert into public.sleep_factors (
+  user_id,
+  name_key,
+  updated_at
+)
+select distinct
+  user_id,
+  factor_key,
+  now()
+from seed_stats_rows
+cross join lateral unnest(
+  array_cat(
+    array_remove(domains, 'sleep_substances'),
+    sleep_substances
+  )
+) as factor_keys(factor_key)
+on conflict (user_id, name_key) do update
+  set updated_at = excluded.updated_at;
+
+insert into public.sleep_factor_occurrences (
+  factor_id,
+  session_id,
+  message_id,
+  checkin_label_key,
+  occurred_at,
+  evidence_kind,
+  source,
+  confidence
+)
+select
+  factor.id,
+  row.session_id,
+  row.user_message_id,
+  case
+    when row.checkin_mode = 'morning' then 'Morning Check-in'
+    else 'Nightly Check-in'
+  end,
+  row.started_at + interval '1 minute',
+  'user_reported',
+  'local',
+  row.confidence
+from seed_stats_rows row
+join public.sleep_factors factor
+  on factor.user_id = row.user_id
+ and factor.name_key = any(
+   array_cat(
+     array_remove(row.domains, 'sleep_substances'),
+     row.sleep_substances
+   )
+ );
+
+insert into public.session_recaps (
+  session_id,
+  title,
+  summary,
+  conclusion,
+  dominant_emotion,
+  domains,
+  emotional_trend,
+  sleep_observations,
+  model_deployment,
+  prompt_version,
+  generated_at,
+  updated_at
+)
+select
+  session_id,
+  '[seed] Catatan check-in ' ||
+    case when checkin_mode = 'night' then 'malam' else 'pagi' end,
+  '[seed] Ringkasan otomatis untuk pengujian statistik.',
+  '[seed] Data pengujian - bukan rangkuman yang dihasilkan AI.',
+  emotion,
+  domains,
+  jsonb_build_object(
+    'direction',
+    case
+      when emotion in ('joy', 'love') then 'membaik'
+      when emotion in ('neutral', 'surprise') then 'stabil'
+      else 'memburuk'
+    end,
+    'observation',
+    '[seed] Observasi otomatis untuk data pengujian.'
+  ),
+  coalesce((
+    select jsonb_agg(observation)
+    from (
+      select 'Tidur sekitar ' || sleep_hours::text || ' jam semalam.' as observation
+      where sleep_hours is not null
+      union all
+      select 'Bangun sekitar pukul ' || to_char(wake_time, 'HH24:MI') || '.'
+      where wake_time is not null
+      union all
+      select 'Menyebutkan ' || array_to_string(sleep_substances, ', ') || ' di sekitar waktu tidur.'
+      where cardinality(sleep_substances) > 0
+    ) observations
+  ), '[]'::jsonb),
+  'seed-sql',
+  'seed-v1',
+  started_at + interval '6 minutes',
+  started_at + interval '6 minutes'
+from seed_stats_rows;
+
+update public.sleep_factors factor
+set
+  level = case
+    when counts.sample_size >= 3 then 'high'
+    when counts.sample_size = 2 then 'medium'
+    else 'low'
+  end,
+  updated_at = now()
+from (
+  select
+    factor_id,
+    count(*) as sample_size
+  from public.sleep_factor_occurrences
+  group by factor_id
+) counts
+where factor.id = counts.factor_id
+  and factor.user_id = '5526818c-4a97-4fcc-a756-bfa70bf96316'
+  and factor.name_key in (
+    select distinct factor_key
+    from seed_stats_rows
+    cross join lateral unnest(
+      array_cat(
+        array_remove(domains, 'sleep_substances'),
+        sleep_substances
+      )
+    ) as factor_keys(factor_key)
+  );
+
+commit;
+
+-- Quick checks after commit:
+--
+-- select count(*) as seeded_sessions
+-- from public.chat_sessions
+-- where user_id = '5526818c-4a97-4fcc-a756-bfa70bf96316'
+--   and preview like '[seed UUD stats]%';
+--
+-- select factor.name_key, count(*) as occurrences
+-- from public.sleep_factors factor
+-- join public.sleep_factor_occurrences occurrence
+--   on occurrence.factor_id = factor.id
+-- where factor.user_id = '5526818c-4a97-4fcc-a756-bfa70bf96316'
+-- group by factor.name_key
+-- order by occurrences desc, factor.name_key;

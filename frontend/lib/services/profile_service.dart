@@ -82,18 +82,25 @@ class ProfileService {
     String? language,
     bool? bedtimeMode,
     String? reminderTone,
+    String? quietHoursStart,
+    String? quietHoursEnd,
   }) async {
     final json = await _api.patch('/profile', body: {
       if (age != null) 'age': age,
       if (language != null) 'language': language,
       if (bedtimeMode != null) 'bedtime_mode': bedtimeMode,
       if (reminderTone != null) 'reminder_tone': reminderTone,
+      if (quietHoursStart != null) 'quiet_hours_start': quietHoursStart,
+      if (quietHoursEnd != null) 'quiet_hours_end': quietHoursEnd,
     }) as Map<String, dynamic>;
     return ProfileData.fromJson(json);
   }
 
   Future<SleepStats> getWeeklySleep() async {
-    final json = await _api.get('/profile/sleep/weekly') as Map<String, dynamic>;
+    final json = await _api.get(
+      '/profile/sleep/weekly',
+      query: {'timezone_offset_minutes': '${DateTime.now().timeZoneOffset.inMinutes}'},
+    ) as Map<String, dynamic>;
     final week = (json['week'] as List)
         .map((e) => WeeklySleepPoint(day: e['day'] as String, hours: (e['hours'] as num).toDouble()))
         .toList();
@@ -105,7 +112,10 @@ class ProfileService {
   }
 
   Future<List<SleepFactorData>> getSleepFactors() async {
-    final json = await _api.get('/profile/sleep-factors') as List;
+    final json = await _api.get(
+      '/profile/sleep-factors',
+      query: {'timezone_offset_minutes': '${DateTime.now().timeZoneOffset.inMinutes}'},
+    ) as List;
     return json.map((e) {
       final map = e as Map<String, dynamic>;
       return SleepFactorData(

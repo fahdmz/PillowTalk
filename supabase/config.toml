@@ -1,0 +1,11 @@
+# Minimal Supabase CLI config to support local development/deploy of the
+# google-tts Edge Function. This project uses a hosted Supabase project for
+# everything else (auth, database) — this file does not need to enable the
+# full local stack (db/studio/etc.) just to work with functions.
+project_id = "pillowtalk"
+
+[functions.google-tts]
+# The platform verifies the caller's Supabase JWT before this function's
+# code runs — an unauthenticated request is rejected with 401 automatically.
+# See https://supabase.com/docs/guides/functions/auth.
+verify_jwt = true

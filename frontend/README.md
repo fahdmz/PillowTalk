@@ -9,17 +9,23 @@ by Supabase Auth and the FastAPI service in [`../backend`](../backend).
 ## Setup
 
 ```bash
+cp .env.example .env   # fill in your Supabase URL/anon key
 flutter pub get
-flutter run \
-  --dart-define=SUPABASE_URL=https://your-project.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=your-anon-key \
-  --dart-define=API_BASE_URL=http://localhost:8000
+flutter run -d chrome --web-port=8080
 ```
 
-`SUPABASE_URL`/`SUPABASE_ANON_KEY` are the same Supabase project the
-backend points at (Settings > API in the Supabase dashboard — this is the
-public anon key, not the backend's service-role key). `API_BASE_URL`
-defaults to `http://localhost:8000` if omitted. See `lib/services/env.dart`.
+`.env` is loaded at startup via `flutter_dotenv` (see `main.dart` and
+`lib/services/env.dart`) — no more `--dart-define` flags needed. It's
+gitignored, same as the backend's. `SUPABASE_URL`/`SUPABASE_ANON_KEY` are
+the same Supabase project the backend points at (Settings > API in the
+Supabase dashboard — this is the public anon key, not the backend's
+service-role key). `API_BASE_URL` defaults to `http://localhost:8000` if
+omitted.
+
+The `--web-port=8080` matters if you're running in Chrome: it has to match
+one of the origins in the backend's `ALLOWED_ORIGINS` (`.env`), or every
+API call fails CORS preflight. Not needed when running on a simulator/
+device instead of Chrome.
 
 ### Google sign-in setup
 

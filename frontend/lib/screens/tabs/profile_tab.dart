@@ -109,7 +109,17 @@ class ProfileTab extends StatelessWidget {
               _SettingsRow(label: t.reminderTone, trailing: Text(t.chimes, style: const TextStyle(fontSize: 13, color: Color(0x66EDE7E2)))),
               _SettingsRow(
                 label: t.quietHours,
-                trailing: const Text('10:00 PM – 7:00 AM', style: TextStyle(fontSize: 13, color: Color(0x66EDE7E2))),
+                trailing: GestureDetector(
+                  onTap: () => _showQuietHoursDialog(context, app),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(app.quietHoursDisplay, style: const TextStyle(fontSize: 13, color: Color(0x66EDE7E2))),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.chevron_right, size: 14, color: Color(0x4DEDE7E2)),
+                    ],
+                  ),
+                ),
               ),
               _SettingsRow(
                 label: t.bedtimeMode,
@@ -212,6 +222,100 @@ class ProfileTab extends StatelessWidget {
     );
   }
 }
+
+Future<void> _showQuietHoursDialog(BuildContext context, AppState app) async {
+  final t = app.t;
+  TimeOfDay start = _parseHHmm(app.quietHoursStart);
+  TimeOfDay end = _parseHHmm(app.quietHoursEnd);
+
+  final result = await showDialog<(TimeOfDay, TimeOfDay)>(
+    context: context,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1F1B2E),
+            title: Text(t.quietHours, style: const TextStyle(color: Color(0xFFEDE7E2), fontWeight: FontWeight.w700)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _QuietHoursTimeRow(
+                  label: t.quietHoursStartLabel,
+                  time: start,
+                  onTap: () async {
+                    final picked = await showTimePicker(context: context, initialTime: start);
+                    if (picked != null) setState(() => start = picked);
+                  },
+                ),
+                const SizedBox(height: 12),
+                _QuietHoursTimeRow(
+                  label: t.quietHoursEndLabel,
+                  time: end,
+                  onTap: () async {
+                    final picked = await showTimePicker(context: context, initialTime: end);
+                    if (picked != null) setState(() => end = picked);
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(t.cancel, style: const TextStyle(color: Color(0x99EDE7E2))),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, (start, end)),
+                child: Text(t.save, style: const TextStyle(color: Color(0xFFB7A6C9), fontWeight: FontWeight.w600)),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+
+  if (result != null) {
+    await app.updateQuietHours(_formatHHmm(result.$1), _formatHHmm(result.$2));
+  }
+}
+
+class _QuietHoursTimeRow extends StatelessWidget {
+  const _QuietHoursTimeRow({required this.label, required this.time, required this.onTap});
+
+  final String label;
+  final TimeOfDay time;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 13.5, color: Color(0xFFEDE7E2))),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0x0AFFFFFF),
+              border: Border.all(color: const Color(0x14FFFFFF)),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(time.format(context), style: const TextStyle(fontSize: 13, color: Color(0xFFEDE7E2))),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+TimeOfDay _parseHHmm(String hhmm) {
+  final parts = hhmm.split(':');
+  return TimeOfDay(hour: int.tryParse(parts[0]) ?? 0, minute: parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0);
+}
+
+String _formatHHmm(TimeOfDay time) =>
+    '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
 
 String _initials(String? fullName) {
   if (fullName == null || fullName.trim().isEmpty) return '?';

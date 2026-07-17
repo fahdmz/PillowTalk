@@ -1,0 +1,4 @@
+# Install this in the worker/runtime that performs local emotion inference.
+-r requirements.txt
+transformers>=4.57,<6.0
+torch>=2.9,<3.0
