@@ -13,6 +13,7 @@ from app.services.foundry_client import create_async_foundry_client
 from app.services.idempotent_chat_repository import IdempotentSupabaseChatRepository
 from app.services.idempotent_orchestrator import IdempotentChatOrchestrator
 from app.services.rate_limiter import InMemoryRateLimiter
+from app.services.recap_factory import get_recap_service
 from app.services.safety import SafetyScreen
 
 
@@ -49,6 +50,8 @@ def _get_base_orchestrator() -> IdempotentChatOrchestrator:
         resource_name=settings.crisis_resource_name,
         resource_phone=settings.crisis_resource_phone,
         resource_url=settings.crisis_resource_url,
+        recap_service=get_recap_service(),
+        max_user_turns=settings.chat_max_user_turns,
     )
     return IdempotentChatOrchestrator(inner)
 

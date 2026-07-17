@@ -1,15 +1,10 @@
-/// Runtime config, passed in with `--dart-define` so no secrets live in
-/// source. Example:
-///
-///   flutter run \
-///     --dart-define=SUPABASE_URL=https://your-project.supabase.co \
-///     --dart-define=SUPABASE_ANON_KEY=your-anon-key \
-///     --dart-define=API_BASE_URL=http://localhost:8000
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+/// Runtime config, loaded from `.env` at startup (see `main.dart`) so no
+/// secrets live in source. Copy `.env.example` to `.env` and fill it in —
+/// `.env` itself is gitignored.
 class Env {
-  static const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  static const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
-  static const apiBaseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://localhost:8000',
-  );
+  static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
+  static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+  static String get apiBaseUrl => dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
 }

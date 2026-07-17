@@ -58,10 +58,19 @@ class AuthService {
   /// the user automatically on first sign-in, so this one call covers both
   /// login and signup — there's no separate "Google signup". Completion
   /// arrives later via [onAuthStateChange], not this future.
+  ///
+  /// On web, `redirectTo` must be an exact match (or match a wildcard
+  /// pattern) in the Supabase dashboard's Authentication > URL Configuration
+  /// > Redirect URLs list — otherwise Supabase falls back to the dashboard's
+  /// static Site URL, which silently breaks the moment the app runs on a
+  /// different port than that setting expects (`ERR_CONNECTION_REFUSED`).
+  /// Using `Uri.base.origin` here means it always matches wherever this
+  /// page actually is, instead of depending on a dashboard value staying in
+  /// sync with `--web-port`.
   Future<bool> signInWithGoogle() {
     return _client.auth.signInWithOAuth(
       OAuthProvider.google,
-      redirectTo: kIsWeb ? null : _oauthRedirectUrl,
+      redirectTo: kIsWeb ? Uri.base.origin : _oauthRedirectUrl,
     );
   }
 

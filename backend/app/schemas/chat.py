@@ -11,6 +11,9 @@ SessionStatus = Literal["active", "completed"]
 class StartSessionRequest(BaseModel):
     checkin_mode: CheckinMode
     language: Language = "en"
+    # Defaults to Asia/Jakarta (+7h) to match this product's Indonesia-first
+    # audience when an older client doesn't send its real local offset.
+    timezone_offset_minutes: int = 420
 
 
 class ChatMessageOut(BaseModel):
@@ -27,7 +30,8 @@ class ChatMessageOut(BaseModel):
 class StartSessionResponse(BaseModel):
     session_id: str
     checkin_mode: CheckinMode
-    greeting: ChatMessageOut
+    session_status: SessionStatus
+    messages: list[ChatMessageOut]
 
 
 class SendMessageRequest(BaseModel):

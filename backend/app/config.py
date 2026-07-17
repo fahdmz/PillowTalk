@@ -103,6 +103,11 @@ class Settings:
         self.chat_rate_limit_window_seconds = _positive_int(
             "CHAT_RATE_LIMIT_WINDOW_SECONDS", 60, maximum=3600
         )
+        # Hard backstop so a check-in always ends even if the model never
+        # signals should_close — counts the user's own messages, not AI replies.
+        self.chat_max_user_turns = _positive_int(
+            "CHAT_MAX_USER_TURNS", 8, maximum=50
+        )
         self.recap_max_output_tokens = _positive_int(
             "RECAP_MAX_OUTPUT_TOKENS", 500, maximum=4000
         )

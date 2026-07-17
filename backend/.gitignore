@@ -26,6 +26,9 @@ dist/
 *.db
 *.sqlite3
 
+# Seed-script manifests (record of test data written to Supabase, for cleanup)
+scripts/seed_manifests/
+
 # Test / coverage output
 .coverage
 .coverage.*

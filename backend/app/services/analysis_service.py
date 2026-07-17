@@ -7,6 +7,7 @@ from typing import Any
 
 from app.schemas.analysis import AnalysisResult, AnalysisSource, Emotion, RiskLevel
 from app.services.analysis_normalizer import extract_context
+from app.services.classifier import LocalEmotionPrediction
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,21 @@ class MessageAnalyzer:
 
     async def analyze(self, text: str) -> AnalysisResult:
         extracted = extract_context(text)
-        local = self.local_classifier.classify(text)
+        try:
+            local = self.local_classifier.classify(text)
+        except Exception:
+            # Missing/broken local model (e.g. ML deps not installed) must not
+            # take down the whole chat turn — treat it the same as a
+            # low-confidence local result so Foundry picks up the slack.
+            logger.exception(
+                "Local emotion classifier failed; falling back to Foundry classification"
+            )
+            local = LocalEmotionPrediction(
+                emotion=None,
+                confidence=0,
+                emotion_scores={},
+                requires_fallback=True,
+            )
 
         if (
             local.requires_fallback

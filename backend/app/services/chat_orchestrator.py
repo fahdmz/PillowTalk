@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass
 from typing import Any
 
 from app.schemas.analysis import AnalysisResult, AnalysisSource, Emotion, RiskLevel
+from app.services.foundry_chatbot import ChatbotReply
 from app.services.safety import SafetyScreen, build_safety_message
 
 logger = logging.getLogger(__name__)
@@ -28,6 +30,11 @@ class ChatTurnResult:
     analysis: AnalysisResult
 
 
+# However the model may signal it, a check-in must always feel bounded —
+# this is the hard backstop, counted in the user's own messages.
+_MIN_USER_TURNS_BEFORE_AI_CLOSE = 2
+
+
 class ChatOrchestrator:
     def __init__(
         self,
@@ -40,6 +47,8 @@ class ChatOrchestrator:
         resource_phone: str,
         resource_url: str,
         rate_limiter: Any | None = None,
+        recap_service: Any | None = None,
+        max_user_turns: int = 8,
     ) -> None:
         self.repository = repository
         self.safety_screen = safety_screen
@@ -49,6 +58,8 @@ class ChatOrchestrator:
         self.resource_phone = resource_phone
         self.resource_url = resource_url
         self.rate_limiter = rate_limiter
+        self.recap_service = recap_service
+        self.max_user_turns = max_user_turns
 
     async def send_message(
         self,
@@ -114,15 +125,37 @@ class ChatOrchestrator:
             )
         except Exception:
             logger.exception("Chat model unavailable; returning controlled reply")
-            reply = _upstream_failure_reply(language)
+            reply = ChatbotReply(text=_upstream_failure_reply(language), should_close=False)
 
-        ai_message = self.repository.insert_message(session_id, "ai", reply)
+        ai_message = self.repository.insert_message(session_id, "ai", reply.text)
+
+        user_turns = self.repository.count_user_messages(session_id)
+        hit_cap = user_turns >= self.max_user_turns
+        ai_wants_close = reply.should_close and user_turns >= _MIN_USER_TURNS_BEFORE_AI_CLOSE
+        session_status = session["status"]
+        if hit_cap or ai_wants_close:
+            self.repository.mark_session_completed(session_id)
+            session_status = "completed"
+            if self.recap_service is not None:
+                asyncio.create_task(
+                    _generate_recap_best_effort(self.recap_service, user_id, session_id)
+                )
+
         return ChatTurnResult(
             user_message=user_message,
             ai_message=ai_message,
-            session_status=session["status"],
+            session_status=session_status,
             analysis=analysis,
         )
+
+
+async def _generate_recap_best_effort(recap_service: Any, user_id: str, session_id: str) -> None:
+    """Fire-and-forget so ending a check-in never makes the user wait on an
+    AI recap call — same pattern as the day-rollover finalization."""
+    try:
+        await recap_service.generate_for_session(user_id=user_id, session_id=session_id)
+    except Exception:
+        logger.exception("Best-effort recap generation failed for session %s", session_id)
 
 
 def _safety_analysis(risk_level: RiskLevel) -> AnalysisResult:

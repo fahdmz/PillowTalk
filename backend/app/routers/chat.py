@@ -1,4 +1,6 @@
-from datetime import datetime, timezone
+import asyncio
+import logging
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -23,6 +25,7 @@ from ..services.recap_generator import RecapGenerationError
 from ..services.recap_service import RecapService
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+logger = logging.getLogger(__name__)
 
 
 def _get_supabase() -> Any:
@@ -31,12 +34,80 @@ def _get_supabase() -> Any:
     return get_supabase()
 
 
+def _start_of_today_utc(timezone_offset_minutes: int) -> datetime:
+    """Midnight in the user's local time, expressed as a UTC instant.
+
+    Sessions are "today's check-in" from the user's perspective, not the
+    server's — using the server's own UTC day here would resume/reset
+    sessions at the wrong local time for anyone outside UTC+0.
+    """
+    offset = timezone(timedelta(minutes=timezone_offset_minutes))
+    local_now = datetime.now(timezone.utc).astimezone(offset)
+    local_start = datetime(
+        local_now.year, local_now.month, local_now.day, tzinfo=offset
+    )
+    return local_start.astimezone(timezone.utc)
+
+
+def _parse_timestamp(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def _load_messages(sb: Any, session_id: str) -> list[dict]:
+    return (
+        sb.table("chat_messages")
+        .select("*")
+        .eq("session_id", session_id)
+        .order("created_at")
+        .execute()
+        .data
+        or []
+    )
+
+
+def _insert_greeting(sb: Any, session: dict, payload: StartSessionRequest) -> dict:
+    return (
+        sb.table("chat_messages")
+        .insert(
+            {
+                "session_id": session["id"],
+                "sender": "ai",
+                "text": greeting_for(payload.checkin_mode, payload.language),
+            }
+        )
+        .execute()
+        .data[0]
+    )
+
+
+async def _finalize_stale_session(
+    sb: Any, recap_service: RecapService, user_id: str, session_id: str
+) -> None:
+    """Closes out a session left open from a previous day. Runs as a
+    fire-and-forget background task so opening today's fresh check-in never
+    has to wait on an AI recap call for yesterday's."""
+    sb.table("chat_sessions").update(
+        {
+            "status": "completed",
+            "ended_at": datetime.now(timezone.utc).isoformat(),
+            "preview": _first_user_message_preview(sb, session_id),
+        }
+    ).eq("id", session_id).eq("user_id", user_id).execute()
+    try:
+        await recap_service.generate_for_session(user_id=user_id, session_id=session_id)
+    except RecapGenerationError:
+        logger.exception("Best-effort recap generation failed for stale session %s", session_id)
+
+
 @router.post("/start", response_model=StartSessionResponse)
-def start_session(
+async def start_session(
     payload: StartSessionRequest,
     user_id: str = Depends(get_current_user_id),
+    recap_service: RecapService = Depends(get_recap_service),
 ):
     sb = _get_supabase()
+    today_start = _start_of_today_utc(payload.timezone_offset_minutes)
+
     active_rows = (
         sb.table("chat_sessions")
         .select("*")
@@ -48,48 +119,62 @@ def start_session(
         .data
         or []
     )
+
     if active_rows:
         session = active_rows[0]
-        greeting_rows = (
-            sb.table("chat_messages")
+        if _parse_timestamp(session["started_at"]) >= today_start:
+            # Still open from earlier today — resume it with full history.
+            messages = _load_messages(sb, session["id"])
+            if not messages:
+                messages = [_insert_greeting(sb, session, payload)]
+            return StartSessionResponse(
+                session_id=session["id"],
+                checkin_mode=payload.checkin_mode,
+                session_status=session["status"],
+                messages=[ChatMessageOut(**m) for m in messages],
+            )
+        # Left active from a previous day — close it out in the background
+        # and fall through to start a fresh session for today.
+        asyncio.create_task(
+            _finalize_stale_session(sb, recap_service, user_id, session["id"])
+        )
+    else:
+        # No active session — see if today's check-in of this type already
+        # ran to completion; if so, that's today's one-per-day slot used.
+        today_rows = (
+            sb.table("chat_sessions")
             .select("*")
-            .eq("session_id", session["id"])
-            .eq("sender", "ai")
-            .order("created_at")
+            .eq("user_id", user_id)
+            .eq("checkin_mode", payload.checkin_mode)
+            .gte("started_at", today_start.isoformat())
+            .order("started_at", desc=True)
             .limit(1)
             .execute()
             .data
             or []
         )
-    else:
-        session = (
-            sb.table("chat_sessions")
-            .insert({"user_id": user_id, "checkin_mode": payload.checkin_mode})
-            .execute()
-            .data[0]
-        )
-        greeting_rows = []
-
-    if greeting_rows:
-        greeting_row = greeting_rows[0]
-    else:
-        greeting_row = (
-            sb.table("chat_messages")
-            .insert(
-                {
-                    "session_id": session["id"],
-                    "sender": "ai",
-                    "text": greeting_for(payload.checkin_mode, payload.language),
-                }
+        if today_rows:
+            session = today_rows[0]
+            messages = _load_messages(sb, session["id"])
+            return StartSessionResponse(
+                session_id=session["id"],
+                checkin_mode=payload.checkin_mode,
+                session_status=session["status"],
+                messages=[ChatMessageOut(**m) for m in messages],
             )
-            .execute()
-            .data[0]
-        )
 
+    session = (
+        sb.table("chat_sessions")
+        .insert({"user_id": user_id, "checkin_mode": payload.checkin_mode})
+        .execute()
+        .data[0]
+    )
+    greeting_row = _insert_greeting(sb, session, payload)
     return StartSessionResponse(
         session_id=session["id"],
         checkin_mode=payload.checkin_mode,
-        greeting=ChatMessageOut(**greeting_row),
+        session_status=session["status"],
+        messages=[ChatMessageOut(**greeting_row)],
     )
 
 

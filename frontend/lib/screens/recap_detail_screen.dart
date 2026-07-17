@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../data/date_format.dart';
 import '../data/strings.dart';
 import '../state/app_state.dart';
 import '../theme/palette.dart';
@@ -70,7 +71,10 @@ class _RecapDetailScreenState extends State<RecapDetailScreen> with SingleTicker
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(dateLabel, style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, color: palette.text)),
-                          Text(open.entry.time, style: TextStyle(fontSize: 11.5, color: palette.sub)),
+                          Text(
+                            '${open.entry.time} · ${formatSlashDate(open.entry.date, app.lang)}',
+                            style: TextStyle(fontSize: 11.5, color: palette.sub),
+                          ),
                         ],
                       ),
                     ),

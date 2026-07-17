@@ -8,6 +8,8 @@ class RecapListItem {
     required this.time,
     required this.isNight,
     this.preview,
+    this.title,
+    this.summary,
   });
 
   final String id;
@@ -16,6 +18,12 @@ class RecapListItem {
   final bool isNight;
   final String? preview;
 
+  /// AI-generated title/summary for this check-in (Indonesian, focused on
+  /// the user — "Kamu ..." not "Saya tanya user ..."). Null until the
+  /// backend's recap generation for this session finishes.
+  final String? title;
+  final String? summary;
+
   factory RecapListItem.fromJson(Map<String, dynamic> json) {
     return RecapListItem(
       id: json['id'] as String,
@@ -23,6 +31,8 @@ class RecapListItem {
       time: json['time'] as String,
       isNight: json['is_night'] as bool,
       preview: json['preview'] as String?,
+      title: json['title'] as String?,
+      summary: json['summary'] as String?,
     );
   }
 }

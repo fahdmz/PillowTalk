@@ -43,6 +43,9 @@ class UiStrings {
     required this.bedtimeDesc,
     required this.age,
     required this.save,
+    required this.cancel,
+    required this.quietHoursStartLabel,
+    required this.quietHoursEndLabel,
     required this.language,
     required this.logOut,
     required this.navRecap,
@@ -71,6 +74,8 @@ class UiStrings {
     required this.notifNightBody,
     required this.notifMorningTitle,
     required this.notifMorningBody,
+    required this.checkinReadOnlyNotice,
+    required this.viewFullChat,
   });
 
   final String tagline, logIn, signUp, fullName, email, password;
@@ -83,7 +88,8 @@ class UiStrings {
   final String sleepInfluencers, autoDetected, loggedDuring;
   final String settings, reminderTone, chimes, quietHours;
   final String bedtimeMode, bedtimeDesc;
-  final String age, save, language, logOut;
+  final String age, save, cancel, quietHoursStartLabel, quietHoursEndLabel;
+  final String language, logOut;
   final String navRecap, navCheckin, navProfile;
   final String listeningNoJudgment, listening, typeOrSpeak;
   final String voiceInputCaption, aiVoiceCaption;
@@ -92,6 +98,8 @@ class UiStrings {
   final String deleteEntryTitle, deleteEntryBody, deleteEntryConfirm, deleteEntryCancel;
   final String notifNow, previewNightNotif, previewMorningNotif;
   final String notifNightTitle, notifNightBody, notifMorningTitle, notifMorningBody;
+  final String checkinReadOnlyNotice;
+  final String viewFullChat;
 
   String levelLabel(FactorLevel level) {
     switch (level) {
@@ -146,6 +154,9 @@ const _en = UiStrings(
   bedtimeDesc: 'Dim and desaturate the screen',
   age: 'Age',
   save: 'Save',
+  cancel: 'Cancel',
+  quietHoursStartLabel: 'Start',
+  quietHoursEndLabel: 'End',
   language: 'Language',
   logOut: 'Log Out',
   navRecap: 'Recap',
@@ -174,6 +185,8 @@ const _en = UiStrings(
   notifNightBody: "It's almost bedtime — log tonight's check-in.",
   notifMorningTitle: 'Good morning',
   notifMorningBody: 'How did you sleep? Log your morning check-in.',
+  checkinReadOnlyNotice: "Today's check-in — already logged",
+  viewFullChat: 'View full chat',
 );
 
 const _id = UiStrings(
@@ -217,6 +230,9 @@ const _id = UiStrings(
   bedtimeDesc: 'Redupkan dan kurangi saturasi layar',
   age: 'Usia',
   save: 'Simpan',
+  cancel: 'Batal',
+  quietHoursStartLabel: 'Mulai',
+  quietHoursEndLabel: 'Selesai',
   language: 'Bahasa',
   logOut: 'Keluar',
   navRecap: 'Rekap',
@@ -245,6 +261,8 @@ const _id = UiStrings(
   notifNightBody: 'Hampir waktu tidur — catat check-in malam ini.',
   notifMorningTitle: 'Selamat pagi',
   notifMorningBody: 'Bagaimana tidurmu? Catat check-in pagi kamu.',
+  checkinReadOnlyNotice: 'Check-in hari ini — sudah tercatat',
+  viewFullChat: 'Lihat percakapan lengkap',
 );
 
 UiStrings uiStringsFor(AppLanguage lang) => lang == AppLanguage.en ? _en : _id;

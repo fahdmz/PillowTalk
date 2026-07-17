@@ -139,6 +139,41 @@ class SupabaseChatRepository:
             "id", session_id
         ).execute()
 
+    def count_user_messages(self, session_id: str) -> int:
+        res = (
+            self.supabase.table("chat_messages")
+            .select("id", count="exact")
+            .eq("session_id", session_id)
+            .eq("sender", "user")
+            .execute()
+        )
+        return res.count or 0
+
+    def mark_session_completed(self, session_id: str) -> None:
+        """Ends a check-in from within the conversation itself (AI-signaled
+        close or the turn cap) — same finalization shape as the day-rollover
+        path in routers/chat.py, just triggered mid-conversation."""
+        rows = (
+            self.supabase.table("chat_messages")
+            .select("text")
+            .eq("session_id", session_id)
+            .eq("sender", "user")
+            .order("created_at")
+            .limit(1)
+            .execute()
+            .data
+            or []
+        )
+        text = rows[0].get("text", "") if rows else ""
+        preview = text if len(text) <= 60 else f"{text[:57]}…"
+        self.supabase.table("chat_sessions").update(
+            {
+                "status": "completed",
+                "ended_at": datetime.now(timezone.utc).isoformat(),
+                "preview": preview,
+            }
+        ).eq("id", session_id).execute()
+
     def load_chat_context(self, user_id: str, session_id: str) -> dict[str, Any]:
         newest_messages = (
             self.supabase.table("chat_messages")

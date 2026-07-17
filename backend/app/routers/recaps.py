@@ -114,7 +114,7 @@ def _list_item(recap: dict[str, Any]) -> RecapListItem:
         date=session["started_at"][:10],
         time=_format_time(session["started_at"]),
         is_night=session["checkin_mode"] == "night",
-        preview=session.get("preview"),
+        preview=recap.get("summary") or session.get("preview"),
         title=recap.get("title"),
         summary=recap.get("summary"),
         dominant_emotion=recap.get("dominant_emotion"),

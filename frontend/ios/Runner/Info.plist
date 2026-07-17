@@ -26,6 +26,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Required by the speech_to_text plugin for the chat mic voice-input
+	     button. -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>PillowTalk uses your microphone so you can speak your check-in instead of typing.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>PillowTalk turns your spoken check-in into text using on-device or Apple's speech recognition.</string>
 	<!-- Deep-link redirect target for Supabase OAuth (Google sign-in) — must
 	     match _oauthRedirectUrl in lib/services/auth_service.dart and the
 	     redirect URL allow-list in the Supabase dashboard. -->

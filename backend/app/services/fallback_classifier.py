@@ -91,6 +91,11 @@ class FoundryFallbackClassifier:
             },
             store=False,
             max_output_tokens=self.max_output_tokens,
+            # Structured extraction against a fixed schema doesn't need
+            # deep reasoning — and without capping it, gpt-5's default
+            # reasoning effort can consume the whole max_output_tokens
+            # budget before finishing (or even starting) the JSON body.
+            reasoning={"effort": "minimal"},
         )
 
         try:

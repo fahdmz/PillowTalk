@@ -50,6 +50,8 @@ class IdempotentChatOrchestrator:
             resource_phone=self.inner.resource_phone,
             resource_url=self.inner.resource_url,
             rate_limiter=None,
+            recap_service=self.inner.recap_service,
+            max_user_turns=self.inner.max_user_turns,
         )
         return await execution.send_message(**kwargs)
 

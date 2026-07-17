@@ -9,7 +9,7 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   full_name text,
   age int,
-  language text not null default 'en' check (language in ('en', 'id')),
+  language text not null default 'id' check (language in ('en', 'id')),
   bedtime_mode boolean not null default false,
   reminder_tone text not null default 'chimes',
   quiet_hours_start time not null default '22:00',

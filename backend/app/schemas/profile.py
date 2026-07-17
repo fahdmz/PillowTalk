@@ -11,7 +11,7 @@ class ProfileOut(BaseModel):
     id: str
     full_name: Optional[str] = None
     age: Optional[int] = None
-    language: Language = "en"
+    language: Language = "id"
     bedtime_mode: bool = False
     reminder_tone: str = "chimes"
     quiet_hours_start: str = "22:00"

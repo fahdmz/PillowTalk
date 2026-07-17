@@ -3,16 +3,22 @@ import 'chat_message.dart';
 class RecapEntry {
   RecapEntry({
     required this.id,
+    required this.date,
     required this.time,
     required this.isNight,
     required this.preview,
+    this.title,
+    this.summary,
     this.transcript = const [],
   });
 
   final String id;
+  final DateTime date;
   final String time;
   final bool isNight;
   final String preview;
+  final String? title;
+  final String? summary;
 
   /// Empty until [openRecapEntry] lazily fetches the full transcript from
   /// `GET /recaps/:id` — the list endpoint only returns a preview.

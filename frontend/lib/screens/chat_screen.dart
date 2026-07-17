@@ -106,77 +106,90 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
           Container(height: 1, color: palette.divider),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 26),
-            child: Column(
-              children: [
-                if (app.isRecording) ...[
-                  Text(t.listening, style: TextStyle(fontSize: 12.5, color: palette.sub)),
-                  const SizedBox(height: 10),
+          if (app.checkinCompleted)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 26),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle_rounded, size: 16, color: palette.sub),
+                  const SizedBox(width: 8),
+                  Text(t.checkinReadOnlyNotice, style: TextStyle(fontSize: 13, color: palette.sub)),
                 ],
-                Text(
-                  app.inputMode == InputMode.stt ? t.voiceInputCaption : t.aiVoiceCaption,
-                  style: TextStyle(fontSize: 10.5, color: palette.sub),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(color: palette.card, borderRadius: BorderRadius.circular(100)),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: app.toggleInputMode,
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: app.inputMode == InputMode.tts ? palette.accent : Colors.transparent,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            app.inputMode == InputMode.tts ? Icons.volume_up_rounded : Icons.volume_off_rounded,
-                            size: 18,
-                            color: app.inputMode == InputMode.tts ? Colors.white : palette.sub,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: TextField(
-                          controller: _draftController,
-                          onChanged: app.updateDraft,
-                          onSubmitted: (_) => app.sendMessage(),
-                          textInputAction: TextInputAction.send,
-                          style: TextStyle(fontSize: 14.5, color: palette.text),
-                          decoration: InputDecoration(
-                            hintText: t.typeOrSpeak,
-                            hintStyle: TextStyle(color: palette.sub),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                          ),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: app.draft.trim().isNotEmpty ? () => app.sendMessage() : app.startVoiceInput,
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: app.draft.trim().isNotEmpty ? palette.accent : palette.cardAlt,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            app.draft.trim().isNotEmpty ? Icons.arrow_upward_rounded : Icons.mic_rounded,
-                            size: app.draft.trim().isNotEmpty ? 18 : 16,
-                            color: app.draft.trim().isNotEmpty ? Colors.white : palette.sub,
-                          ),
-                        ),
-                      ),
-                    ],
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 26),
+              child: Column(
+                children: [
+                  if (app.isRecording) ...[
+                    Text(t.listening, style: TextStyle(fontSize: 12.5, color: palette.sub)),
+                    const SizedBox(height: 10),
+                  ],
+                  Text(
+                    app.inputMode == InputMode.stt ? t.voiceInputCaption : t.aiVoiceCaption,
+                    style: TextStyle(fontSize: 10.5, color: palette.sub),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(color: palette.card, borderRadius: BorderRadius.circular(100)),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: app.toggleInputMode,
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: app.inputMode == InputMode.tts ? palette.accent : Colors.transparent,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              app.inputMode == InputMode.tts ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+                              size: 18,
+                              color: app.inputMode == InputMode.tts ? Colors.white : palette.sub,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: _draftController,
+                            onChanged: app.updateDraft,
+                            onSubmitted: (_) => app.sendMessage(),
+                            textInputAction: TextInputAction.send,
+                            style: TextStyle(fontSize: 14.5, color: palette.text),
+                            decoration: InputDecoration(
+                              hintText: t.typeOrSpeak,
+                              hintStyle: TextStyle(color: palette.sub),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: app.draft.trim().isNotEmpty ? () => app.sendMessage() : app.startVoiceInput,
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: app.draft.trim().isNotEmpty ? palette.accent : palette.cardAlt,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              app.draft.trim().isNotEmpty ? Icons.arrow_upward_rounded : Icons.mic_rounded,
+                              size: app.draft.trim().isNotEmpty ? 18 : 16,
+                              color: app.draft.trim().isNotEmpty ? Colors.white : palette.sub,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
           ),
           if (app.showMicPermModal)

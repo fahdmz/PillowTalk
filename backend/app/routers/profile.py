@@ -36,9 +36,11 @@ def get_profile(claims: dict = Depends(get_current_user_claims)):
     rows = sb.table("profiles").select("*").eq("id", user_id).execute().data
     if not rows:
         full_name = (claims.get("user_metadata") or {}).get("full_name")
+        # PillowTalk is an Indonesian-first product — default new profiles to
+        # "id" explicitly rather than relying on the database column default.
         rows = (
             sb.table("profiles")
-            .insert({"id": user_id, "full_name": full_name})
+            .insert({"id": user_id, "full_name": full_name, "language": "id"})
             .execute()
             .data
         )

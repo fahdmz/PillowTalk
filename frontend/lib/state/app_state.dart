@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show AuthChangeEvent, AuthException, AuthState;
+import 'package:supabase_flutter/supabase_flutter.dart'
+    show AuthChangeEvent, AuthException, AuthState;
 
 import '../data/date_format.dart';
-import '../data/mock_data.dart' show sttSample;
 import '../data/strings.dart';
 import '../models/chat_message.dart';
 import '../models/language.dart';
@@ -15,6 +15,8 @@ import '../services/auth_service.dart';
 import '../services/chat_service.dart';
 import '../services/profile_service.dart';
 import '../services/recap_service.dart';
+import '../services/stt_service.dart';
+import '../services/tts_service.dart';
 import '../theme/palette.dart';
 
 enum AppScreen { auth, home, chat }
@@ -30,6 +32,9 @@ enum InputMode { stt, tts }
 enum RecapFilter { all, night, morning }
 
 enum MicPermStatus { unasked, granted, denied }
+
+const _connectionErrorText =
+    "Sorry, I'm having trouble connecting right now. Please try again.";
 
 /// A recap entry plus the group date-label it belongs to, resolved once a
 /// user opens it — mirrors the design's `selectedEntryObj`.
@@ -51,13 +56,20 @@ class AppState extends ChangeNotifier {
     ChatService? chatService,
     RecapService? recapService,
     ProfileService? profileService,
+    TtsService? ttsService,
+    SttService? sttService,
   })  : _authService = authService ?? AuthService.instance(),
         _chatService = chatService ??
-            ChatService(apiClient ?? ApiClient(authService ?? AuthService.instance())),
+            ChatService(
+                apiClient ?? ApiClient(authService ?? AuthService.instance())),
         _recapService = recapService ??
-            RecapService(apiClient ?? ApiClient(authService ?? AuthService.instance())),
+            RecapService(
+                apiClient ?? ApiClient(authService ?? AuthService.instance())),
         _profileService = profileService ??
-            ProfileService(apiClient ?? ApiClient(authService ?? AuthService.instance())) {
+            ProfileService(
+                apiClient ?? ApiClient(authService ?? AuthService.instance())),
+        _ttsService = ttsService ?? TtsService(),
+        _sttService = sttService ?? SttService() {
     _bootstrap();
     // Google OAuth completes via an external browser + deep-link redirect,
     // not a value we can await directly — this is what actually moves us
@@ -73,6 +85,8 @@ class AppState extends ChangeNotifier {
   final ChatService _chatService;
   final RecapService _recapService;
   final ProfileService _profileService;
+  final TtsService _ttsService;
+  final SttService _sttService;
   StreamSubscription<AuthState>? _authSub;
 
   AppScreen screen = AppScreen.auth;
@@ -96,6 +110,8 @@ class AppState extends ChangeNotifier {
   bool showMicPermModal = false;
 
   bool bedtimeMode = false;
+  String quietHoursStart = '22:00';
+  String quietHoursEnd = '07:00';
 
   List<RecapGroup> recapData = [];
   bool recapsLoaded = false;
@@ -121,12 +137,11 @@ class AppState extends ChangeNotifier {
   String ageDraft = '29';
   String? fullName;
 
-  AppLanguage lang = AppLanguage.en;
-
-  Timer? _recordingTimer;
+  AppLanguage lang = AppLanguage.id;
 
   UiStrings get t => uiStringsFor(lang);
-  Palette get palette => checkinMode == CheckinMode.morning ? Palette.morning : Palette.night;
+  Palette get palette =>
+      checkinMode == CheckinMode.morning ? Palette.morning : Palette.night;
 
   // --- bootstrap / auth ---------------------------------------------------
 
@@ -173,7 +188,8 @@ class AppState extends ChangeNotifier {
     isAuthLoading = true;
     notifyListeners();
     try {
-      await _authService.signUp(email: email, password: password, fullName: fullName);
+      await _authService.signUp(
+          email: email, password: password, fullName: fullName);
       await goHome();
     } on AuthException catch (e) {
       authError = e.message;
@@ -236,37 +252,61 @@ class AppState extends ChangeNotifier {
     _currentSessionId = null;
     notifyListeners();
 
+    final sessionId = await _ensureSession();
+    if (sessionId == null) {
+      messages.add(const ChatMessage(
+        id: 'session-start-failed',
+        sender: MessageSender.ai,
+        text: _connectionErrorText,
+      ));
+    }
+    notifyListeners();
+  }
+
+  /// Starts a chat session if one isn't already active. Used both when
+  /// first entering the chat and as a retry path from [sendMessage], so a
+  /// failed [selectCheckin] doesn't leave the input row permanently dead.
+  ///
+  /// The backend resumes today's in-progress session for this check-in type
+  /// if one exists (or hands back today's already-completed one, read-only,
+  /// enforcing one check-in of each type per day) — either way it returns
+  /// the full message history, which replaces whatever's currently loaded.
+  Future<String?> _ensureSession() async {
+    if (_currentSessionId != null) return _currentSessionId;
+    final mode = checkinMode;
+    if (mode == null) return null;
     try {
-      final started = await _chatService.startSession(checkinMode: mode.name, language: lang.name);
+      final started = await _chatService.startSession(
+          checkinMode: mode.name, language: lang.name);
       _currentSessionId = started.sessionId;
-      messages.add(started.greeting);
-      notifyListeners();
+      checkinCompleted = started.sessionStatus == 'completed';
+      messages
+        ..clear()
+        ..addAll(started.messages);
+      return started.sessionId;
     } catch (_) {
-      // Leave the chat empty; the input row still lets the user retry by
-      // typing, which will surface the same error again.
+      return null;
     }
   }
 
+  /// Leaving chat is just navigation now, not an end-of-session action — an
+  /// in-progress check-in stays active server-side so reopening the same
+  /// type later today resumes it instead of starting over. It only gets
+  /// finalized (recap generated) once a new day rolls it over in
+  /// `_ensureSession`, or `session_status` comes back completed on its own.
   Future<void> exitChat() async {
-    final sessionId = _currentSessionId;
     screen = AppScreen.home;
     activeTab = HomeTab.checkin;
-    _recordingTimer?.cancel();
+    await _sttService.cancel();
     isRecording = false;
     aiTyping = false;
+    await _ttsService.stop();
     notifyListeners();
-
-    if (sessionId != null && !checkinCompleted) {
-      try {
-        await _chatService.endSessionEarly(sessionId);
-      } catch (_) {
-        // best-effort — the session just stays 'active' server-side
-      }
-    }
     await loadRecaps();
   }
 
   Future<void> logOut() async {
+    await _ttsService.stop();
     try {
       await _authService.signOut();
     } catch (_) {
@@ -293,28 +333,72 @@ class AppState extends ChangeNotifier {
   void toggleInputMode() {
     inputMode = inputMode == InputMode.stt ? InputMode.tts : InputMode.stt;
     notifyListeners();
+    if (inputMode == InputMode.tts) {
+      // Turning voice replies on reads the latest AI reply immediately,
+      // then every new one as it arrives (see sendMessage).
+      final lastAiMessage = messages.lastWhere(
+        (m) => m.sender == MessageSender.ai,
+        orElse: () => const ChatMessage(id: '', sender: MessageSender.ai),
+      );
+      _speak(lastAiMessage);
+    } else {
+      unawaited(_ttsService.stop());
+    }
+  }
+
+  /// Speaks an AI message aloud if voice replies are on. Never called with
+  /// the user's own messages.
+  void _speak(ChatMessage message) {
+    if (inputMode != InputMode.tts) return;
+    final text = _spokenTextFor(message);
+    if (text == null) return;
+    unawaited(_ttsService.speak(text, appLanguage: lang.name));
   }
 
   Future<void> sendMessage([String? overrideText]) async {
+    if (isRecording) {
+      // Manually sending (e.g. tapping the arrow that a live partial STT
+      // result turned into) must stop the still-listening recognizer, or a
+      // late final result would silently send a second message.
+      unawaited(_sttService.cancel());
+      isRecording = false;
+    }
     final text = (overrideText ?? draft).trim();
+    // Today's already-completed check-ins render read-only (see ChatScreen,
+    // which hides the input row entirely for these) — no input reaches here.
     if (text.isEmpty || checkinCompleted) return;
-    final sessionId = _currentSessionId;
-    if (sessionId == null) return;
 
-    messages.add(ChatMessage(id: DateTime.now().microsecondsSinceEpoch, sender: MessageSender.user, text: text));
+    final sessionId = await _ensureSession();
+    if (sessionId == null) {
+      messages.add(ChatMessage(
+        id: DateTime.now().microsecondsSinceEpoch,
+        sender: MessageSender.ai,
+        text: _connectionErrorText,
+      ));
+      notifyListeners();
+      return;
+    }
+
+    messages.add(ChatMessage(
+        id: DateTime.now().microsecondsSinceEpoch,
+        sender: MessageSender.user,
+        text: text));
     draft = '';
     aiTyping = true;
     notifyListeners();
 
     try {
-      final result = await _chatService.sendMessage(sessionId: sessionId, text: text, language: lang.name);
+      final result = await _chatService.sendMessage(
+          sessionId: sessionId, text: text, language: lang.name);
       messages.add(result.aiMessage);
+      _speak(result.aiMessage);
+      _refreshStatsAfterChatTurn(sessionCompleted: result.sessionCompleted);
       if (result.sessionCompleted) checkinCompleted = true;
     } catch (_) {
       messages.add(ChatMessage(
         id: DateTime.now().microsecondsSinceEpoch,
         sender: MessageSender.ai,
-        text: "Sorry, I'm having trouble connecting right now. Please try again.",
+        text: _connectionErrorText,
       ));
     } finally {
       aiTyping = false;
@@ -322,9 +406,23 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  void _refreshStatsAfterChatTurn({required bool sessionCompleted}) {
+    unawaited(Future.wait([
+      loadWeeklySleep(),
+      loadSleepFactors(),
+      if (sessionCompleted) loadRecaps(),
+    ]));
+  }
+
   void startVoiceInput() {
     if (draft.trim().isNotEmpty) {
       sendMessage();
+      return;
+    }
+    if (isRecording) {
+      // Tapping the mic again while it's listening ends the recording early
+      // and sends whatever was recognized so far.
+      _sttService.stop();
       return;
     }
     if (micPermStatus == MicPermStatus.unasked) {
@@ -337,22 +435,39 @@ class AppState extends ChangeNotifier {
   }
 
   void _beginRecording() {
-    // STT (Whisper) isn't wired up yet — this still simulates a recognized
-    // phrase so the voice-input UI can be exercised end to end.
     isRecording = true;
     notifyListeners();
-    _recordingTimer?.cancel();
-    _recordingTimer = Timer(const Duration(milliseconds: 1400), () {
-      isRecording = false;
-      sendMessage(sttSample);
-    });
+    _sttService.startListening(
+      appLanguage: lang.name,
+      onPartialResult: (text) {
+        draft = text;
+        notifyListeners();
+      },
+      onFinalResult: (text) {
+        isRecording = false;
+        draft = '';
+        notifyListeners();
+        if (text.trim().isNotEmpty) sendMessage(text);
+      },
+      onDone: () {
+        // Fallback for when recognition stops without ever delivering a
+        // final result (e.g. a permission/engine error) so the mic button
+        // doesn't get stuck showing "listening".
+        if (isRecording) {
+          isRecording = false;
+          notifyListeners();
+        }
+      },
+    );
   }
 
-  void allowMicPerm() {
-    micPermStatus = MicPermStatus.granted;
+  Future<void> allowMicPerm() async {
     showMicPermModal = false;
     notifyListeners();
-    _beginRecording();
+    final granted = await _sttService.requestPermission();
+    micPermStatus = granted ? MicPermStatus.granted : MicPermStatus.denied;
+    notifyListeners();
+    if (granted) _beginRecording();
   }
 
   void denyMicPerm() {
@@ -372,14 +487,20 @@ class AppState extends ChangeNotifier {
         final day = DateTime(item.date.year, item.date.month, item.date.day);
         final entry = RecapEntry(
           id: item.id,
+          date: item.date,
           time: item.time,
           isNight: item.isNight,
           preview: item.preview ?? '',
+          title: item.title,
+          summary: item.summary,
         );
         if (lastDay == day && groups.isNotEmpty) {
           groups.last.items.add(entry);
         } else {
-          groups.add(RecapGroup(dateLabelKey: recapDateLabelKey(day), dateValue: day, items: [entry]));
+          groups.add(RecapGroup(
+              dateLabelKey: recapDateLabelKey(day),
+              dateValue: day,
+              items: [entry]));
           lastDay = day;
         }
       }
@@ -462,8 +583,10 @@ class AppState extends ChangeNotifier {
 
   List<RecapGroup> get filteredRecapGroups {
     return recapData
-        .where((g) => selectedMonth == null ||
-            (g.dateValue.year == selectedMonth!.year && g.dateValue.month == selectedMonth!.month))
+        .where((g) =>
+            selectedMonth == null ||
+            (g.dateValue.year == selectedMonth!.year &&
+                g.dateValue.month == selectedMonth!.month))
         .map((g) {
           final items = g.items.where((it) {
             switch (recapFilter) {
@@ -475,14 +598,18 @@ class AppState extends ChangeNotifier {
                 return !it.isNight;
             }
           }).toList();
-          return RecapGroup(dateLabelKey: g.dateLabelKey, dateValue: g.dateValue, items: items);
+          return RecapGroup(
+              dateLabelKey: g.dateLabelKey,
+              dateValue: g.dateValue,
+              items: items);
         })
         .where((g) => g.items.isNotEmpty)
         .toList();
   }
 
   String recapGroupLabel(RecapGroup group) {
-    final base = dateLabelTranslations[lang]![group.dateLabelKey] ?? group.dateLabelKey;
+    final base =
+        dateLabelTranslations[lang]![group.dateLabelKey] ?? group.dateLabelKey;
     if (isWeekdayLabelKey(group.dateLabelKey)) {
       return '$base · ${formatShortDate(group.dateValue, lang)}';
     }
@@ -552,6 +679,8 @@ class AppState extends ChangeNotifier {
       ageDraft = '$age';
       lang = profile.language == 'id' ? AppLanguage.id : AppLanguage.en;
       bedtimeMode = profile.bedtimeMode;
+      quietHoursStart = profile.quietHoursStart;
+      quietHoursEnd = profile.quietHoursEnd;
       fullName = profile.fullName;
       notifyListeners();
     } catch (_) {
@@ -603,6 +732,23 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// "10:00 PM – 7:00 AM" style label built from the 24h "HH:MM" values the
+  /// backend stores.
+  String get quietHoursDisplay =>
+      '${_format12Hour(quietHoursStart)} – ${_format12Hour(quietHoursEnd)}';
+
+  Future<void> updateQuietHours(String start, String end) async {
+    quietHoursStart = start;
+    quietHoursEnd = end;
+    notifyListeners();
+    try {
+      await _profileService.updateProfile(
+          quietHoursStart: start, quietHoursEnd: end);
+    } catch (_) {
+      // best-effort sync; local value already reflects the user's pick
+    }
+  }
+
   Future<void> toggleBedtime() async {
     bedtimeMode = !bedtimeMode;
     notifyListeners();
@@ -648,9 +794,36 @@ class AppState extends ChangeNotifier {
 
   @override
   void dispose() {
-    _recordingTimer?.cancel();
+    unawaited(_sttService.cancel());
     _notifTimer?.cancel();
     _authSub?.cancel();
+    unawaited(_ttsService.dispose());
     super.dispose();
   }
+}
+
+/// Text to actually speak for a chat message: its own text, or — for a
+/// crisis message, whose text is intentionally split into
+/// prefix/phone/suffix for the tappable phone link — those parts joined
+/// back together, since that guidance matters at least as much read aloud.
+String? _spokenTextFor(ChatMessage message) {
+  final text = message.text;
+  if (text != null && text.trim().isNotEmpty) return text;
+  if (!message.isCrisis) return null;
+  final parts = [
+    message.crisisPrefix,
+    message.crisisPhone,
+    message.crisisSuffix
+  ].where((part) => part != null && part.trim().isNotEmpty).join(' ');
+  return parts.isEmpty ? null : parts;
+}
+
+/// "22:00" -> "10:00 PM", "07:00" -> "7:00 AM".
+String _format12Hour(String hhmm) {
+  final parts = hhmm.split(':');
+  final hour24 = int.tryParse(parts[0]) ?? 0;
+  final minute = parts.length > 1 ? parts[1].padLeft(2, '0') : '00';
+  final period = hour24 < 12 ? 'AM' : 'PM';
+  final hour12 = hour24 % 12 == 0 ? 12 : hour24 % 12;
+  return '$hour12:$minute $period';
 }
