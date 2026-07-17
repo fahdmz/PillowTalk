@@ -1,0 +1,50 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'env.dart';
+
+/// Thin wrapper around Supabase Auth — this is the *only* place in the app
+/// that should touch `Supabase.instance.client.auth` directly. Login/signup
+/// are handled entirely client-side; the backend never sees passwords, it
+/// only ever verifies the access token this service hands out.
+class AuthService {
+  AuthService(this._client);
+
+  final SupabaseClient _client;
+
+  static Future<void> initialize() {
+    return Supabase.initialize(
+      url: Env.supabaseUrl,
+      anonKey: Env.supabaseAnonKey,
+    );
+  }
+
+  factory AuthService.instance() => AuthService(Supabase.instance.client);
+
+  Session? get currentSession => _client.auth.currentSession;
+  String? get accessToken => currentSession?.accessToken;
+  User? get currentUser => _client.auth.currentUser;
+  bool get isSignedIn => currentSession != null;
+
+  /// Fires on sign-in, sign-out, and token refresh — Supabase persists the
+  /// session locally so this also fires once on app start if a session is
+  /// still valid from a previous launch (sessions last ~30 days).
+  Stream<AuthState> get onAuthStateChange => _client.auth.onAuthStateChange;
+
+  Future<AuthResponse> signIn({required String email, required String password}) {
+    return _client.auth.signInWithPassword(email: email, password: password);
+  }
+
+  Future<AuthResponse> signUp({
+    required String email,
+    required String password,
+    required String fullName,
+  }) {
+    return _client.auth.signUp(
+      email: email,
+      password: password,
+      data: {'full_name': fullName},
+    );
+  }
+
+  Future<void> signOut() => _client.auth.signOut();
+}
