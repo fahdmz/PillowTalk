@@ -1,5 +1,7 @@
 # DrowzyDiary
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A private, voice-first sleep diary and wind-down companion: a bounded
 evening worry offload and a morning sleep check-in, turned into a
 correctable diary and cautious, non-causal weekly observations. Not a
@@ -21,9 +23,10 @@ and tooling.
 
 ## Data model (Supabase/Postgres)
 
-`sql/schema.sql` defines: `profiles`, `chat_sessions`, `chat_messages`,
-`sleep_logs`, `sleep_factors`, `sleep_factor_occurrences` — all scoped to
-`user_id` and backed by row-level security.
+`backend/sql/schema.sql` defines: `profiles`, `chat_sessions`,
+`chat_messages`, `sleep_logs`, `sleep_factors`,
+`sleep_factor_occurrences` — all scoped to `user_id` and backed by
+row-level security.
 
 ## Non-negotiable boundary
 
@@ -37,5 +40,9 @@ See [backend/README.md](backend/README.md) and
 [frontend/README.md](frontend/README.md) for each app's setup steps. Both
 need a shared Supabase project: run `backend/sql/schema.sql` once in the
 Supabase SQL editor, then point the backend at its URL/service-role
-key/JWT secret (`backend/.env`) and the frontend at its URL/anon key
-(`--dart-define`, see frontend/README.md).
+key (`backend/.env`) and the frontend at its URL/anon key
+(`frontend/.env`, see frontend/README.md).
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
