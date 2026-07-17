@@ -41,3 +41,5 @@ ios/Flutter/Generated.xcconfig
 ios/Flutter/ephemeral/
 ios/DerivedData/
 ios/*.xcuserstate
+
+.env

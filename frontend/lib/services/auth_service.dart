@@ -1,6 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'env.dart';
+
+/// Deep-link scheme the app registers on Android/iOS for the OAuth redirect
+/// to land back in — must also be added to the redirect URL allow-list for
+/// the Google provider in the Supabase dashboard (Authentication > URL
+/// Configuration), and the corresponding native platform config:
+/// an `<intent-filter>` in AndroidManifest.xml and a URL scheme in Info.plist.
+const _oauthRedirectUrl = 'com.drowzydiary.drowzydiary://login-callback';
 
 /// Thin wrapper around Supabase Auth — this is the *only* place in the app
 /// that should touch `Supabase.instance.client.auth` directly. Login/signup
@@ -43,6 +51,17 @@ class AuthService {
       email: email,
       password: password,
       data: {'full_name': fullName},
+    );
+  }
+
+  /// Opens the system browser for Google sign-in/signup. Supabase creates
+  /// the user automatically on first sign-in, so this one call covers both
+  /// login and signup — there's no separate "Google signup". Completion
+  /// arrives later via [onAuthStateChange], not this future.
+  Future<bool> signInWithGoogle() {
+    return _client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: kIsWeb ? null : _oauthRedirectUrl,
     );
   }
 

@@ -8,6 +8,7 @@ import 'state/app_state.dart';
 import 'theme/app_theme.dart';
 import 'theme/bedtime_filter.dart';
 import 'theme/palette.dart';
+import 'widgets/notification_banner.dart';
 
 class DrowzyDiaryApp extends StatelessWidget {
   const DrowzyDiaryApp({super.key});
@@ -52,16 +53,27 @@ class _ScreenSwitcher extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = context.select((AppState app) => app.screen);
+    final app = context.watch<AppState>();
     return Scaffold(
       body: SafeArea(
         top: false,
         bottom: false,
-        child: switch (screen) {
-          AppScreen.auth => const AuthScreen(),
-          AppScreen.home => const HomeScreen(),
-          AppScreen.chat => const ChatScreen(),
-        },
+        child: Stack(
+          children: [
+            switch (app.screen) {
+              AppScreen.auth => const AuthScreen(),
+              AppScreen.home => const HomeScreen(),
+              AppScreen.chat => const ChatScreen(),
+            },
+            NotificationBanner(
+              open: app.notifOpen,
+              type: app.notifPreviewType,
+              t: app.t,
+              onTap: app.openNotifBanner,
+              onDismiss: app.dismissNotifBanner,
+            ),
+          ],
+        ),
       ),
     );
   }

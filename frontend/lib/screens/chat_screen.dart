@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../state/app_state.dart';
 import '../widgets/chat_bubble.dart';
+import '../widgets/mic_permission_modal.dart';
 import '../widgets/typing_indicator.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -53,7 +54,9 @@ class _ChatScreenState extends State<ChatScreen> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 500),
       color: palette.bg,
-      child: Column(
+      child: Stack(
+        children: [
+          Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 56, 20, 16),
@@ -131,7 +134,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            app.inputMode == InputMode.stt ? Icons.mic_none_rounded : Icons.volume_up_rounded,
+                            app.inputMode == InputMode.tts ? Icons.volume_up_rounded : Icons.volume_off_rounded,
                             size: 18,
                             color: app.inputMode == InputMode.tts ? Colors.white : palette.sub,
                           ),
@@ -174,6 +177,17 @@ class _ChatScreenState extends State<ChatScreen> {
               ],
             ),
           ),
+        ],
+          ),
+          if (app.showMicPermModal)
+            Positioned.fill(
+              child: MicPermissionModal(
+                palette: palette,
+                t: t,
+                onAllow: app.allowMicPerm,
+                onDeny: app.denyMicPerm,
+              ),
+            ),
         ],
       ),
     );

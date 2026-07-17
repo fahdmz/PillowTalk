@@ -11,6 +11,10 @@ class UiStrings {
     required this.password,
     required this.createAccount,
     required this.footer,
+    required this.confirmPassword,
+    required this.passwordMismatch,
+    required this.orDivider,
+    required this.continueWithGmail,
     required this.recap,
     required this.recapSub,
     required this.all,
@@ -52,10 +56,26 @@ class UiStrings {
     required this.high,
     required this.medium,
     required this.low,
+    required this.micPermTitle,
+    required this.micPermBody,
+    required this.micPermAllow,
+    required this.micPermDeny,
+    required this.deleteEntryTitle,
+    required this.deleteEntryBody,
+    required this.deleteEntryConfirm,
+    required this.deleteEntryCancel,
+    required this.notifNow,
+    required this.previewNightNotif,
+    required this.previewMorningNotif,
+    required this.notifNightTitle,
+    required this.notifNightBody,
+    required this.notifMorningTitle,
+    required this.notifMorningBody,
   });
 
   final String tagline, logIn, signUp, fullName, email, password;
   final String createAccount, footer;
+  final String confirmPassword, passwordMismatch, orDivider, continueWithGmail;
   final String recap, recapSub, all, nightly, morning, month, clear;
   final String readyCheckin, chooseMoment;
   final String nightlyCheckin, windDown, morningCheckin, reflect;
@@ -68,6 +88,10 @@ class UiStrings {
   final String listeningNoJudgment, listening, typeOrSpeak;
   final String voiceInputCaption, aiVoiceCaption;
   final String high, medium, low;
+  final String micPermTitle, micPermBody, micPermAllow, micPermDeny;
+  final String deleteEntryTitle, deleteEntryBody, deleteEntryConfirm, deleteEntryCancel;
+  final String notifNow, previewNightNotif, previewMorningNotif;
+  final String notifNightTitle, notifNightBody, notifMorningTitle, notifMorningBody;
 
   String levelLabel(FactorLevel level) {
     switch (level) {
@@ -90,6 +114,10 @@ const _en = UiStrings(
   password: 'Password',
   createAccount: 'Create Account',
   footer: 'No pressure. No streaks. Just rest.',
+  confirmPassword: 'Confirm password',
+  passwordMismatch: "Passwords don't match",
+  orDivider: 'or',
+  continueWithGmail: 'Continue with Gmail',
   recap: 'Recap',
   recapSub: 'Your check-in history',
   all: 'All',
@@ -131,6 +159,21 @@ const _en = UiStrings(
   high: 'High',
   medium: 'Medium',
   low: 'Low',
+  micPermTitle: 'Allow Microphone Access',
+  micPermBody: 'DrowzyDiary uses your microphone to log check-ins by voice. Your audio is never stored.',
+  micPermAllow: 'Allow Microphone',
+  micPermDeny: 'Not Now',
+  deleteEntryTitle: 'Delete this entry?',
+  deleteEntryBody: "This check-in and its conversation will be permanently removed. This can't be undone.",
+  deleteEntryConfirm: 'Delete Entry',
+  deleteEntryCancel: 'Cancel',
+  notifNow: 'now',
+  previewNightNotif: 'Preview night reminder',
+  previewMorningNotif: 'Preview morning reminder',
+  notifNightTitle: 'Time to wind down',
+  notifNightBody: "It's almost bedtime — log tonight's check-in.",
+  notifMorningTitle: 'Good morning',
+  notifMorningBody: 'How did you sleep? Log your morning check-in.',
 );
 
 const _id = UiStrings(
@@ -142,6 +185,10 @@ const _id = UiStrings(
   password: 'Kata sandi',
   createAccount: 'Buat Akun',
   footer: 'Tanpa tekanan. Tanpa target harian. Cukup istirahat.',
+  confirmPassword: 'Konfirmasi kata sandi',
+  passwordMismatch: 'Kata sandi tidak cocok',
+  orDivider: 'atau',
+  continueWithGmail: 'Lanjutkan dengan Gmail',
   recap: 'Rekap',
   recapSub: 'Riwayat check-in kamu',
   all: 'Semua',
@@ -183,6 +230,21 @@ const _id = UiStrings(
   high: 'Tinggi',
   medium: 'Sedang',
   low: 'Rendah',
+  micPermTitle: 'Izinkan Akses Mikrofon',
+  micPermBody: 'DrowzyDiary menggunakan mikrofon untuk mencatat check-in lewat suara. Audio kamu tidak pernah disimpan.',
+  micPermAllow: 'Izinkan Mikrofon',
+  micPermDeny: 'Nanti Saja',
+  deleteEntryTitle: 'Hapus entri ini?',
+  deleteEntryBody: 'Check-in ini beserta percakapannya akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.',
+  deleteEntryConfirm: 'Hapus Entri',
+  deleteEntryCancel: 'Batal',
+  notifNow: 'sekarang',
+  previewNightNotif: 'Pratinjau pengingat malam',
+  previewMorningNotif: 'Pratinjau pengingat pagi',
+  notifNightTitle: 'Waktunya bersantai',
+  notifNightBody: 'Hampir waktu tidur — catat check-in malam ini.',
+  notifMorningTitle: 'Selamat pagi',
+  notifMorningBody: 'Bagaimana tidurmu? Catat check-in pagi kamu.',
 );
 
 UiStrings uiStringsFor(AppLanguage lang) => lang == AppLanguage.en ? _en : _id;

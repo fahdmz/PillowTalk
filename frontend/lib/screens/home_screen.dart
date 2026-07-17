@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../state/app_state.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../widgets/star_field_background.dart';
 import 'recap_detail_screen.dart';
 import 'tabs/checkin_tab.dart';
 import 'tabs/profile_tab.dart';
@@ -19,6 +20,7 @@ class HomeScreen extends StatelessWidget {
       color: const Color(0xFF161320),
       child: Stack(
         children: [
+          const Positioned.fill(child: StarFieldBackground()),
           Column(
             children: [
               Expanded(

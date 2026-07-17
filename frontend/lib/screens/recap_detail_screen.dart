@@ -5,6 +5,7 @@ import '../data/strings.dart';
 import '../state/app_state.dart';
 import '../theme/palette.dart';
 import '../widgets/chat_bubble.dart';
+import '../widgets/delete_confirm_modal.dart';
 
 /// Slide-in overlay showing a past check-in's full transcript, matching the
 /// design's `showRecapDetail` layer (absolute, z-index above the home tabs).
@@ -46,7 +47,9 @@ class _RecapDetailScreenState extends State<RecapDetailScreen> with SingleTicker
         opacity: _controller,
         child: Container(
           color: palette.bg,
-          child: Column(
+          child: Stack(
+            children: [
+              Column(
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 56, 20, 16),
@@ -72,7 +75,7 @@ class _RecapDetailScreenState extends State<RecapDetailScreen> with SingleTicker
                       ),
                     ),
                     GestureDetector(
-                      onTap: app.deleteEntry,
+                      onTap: app.requestDeleteEntry,
                       child: Container(
                         width: 34,
                         height: 34,
@@ -92,6 +95,17 @@ class _RecapDetailScreenState extends State<RecapDetailScreen> with SingleTicker
                   itemBuilder: (context, index) => ChatBubble(message: open.entry.transcript[index], palette: palette),
                 ),
               ),
+            ],
+              ),
+              if (app.showDeleteConfirm)
+                Positioned.fill(
+                  child: DeleteConfirmModal(
+                    palette: palette,
+                    t: app.t,
+                    onConfirm: app.deleteEntry,
+                    onCancel: app.cancelDeleteEntry,
+                  ),
+                ),
             ],
           ),
         ),

@@ -21,6 +21,22 @@ backend points at (Settings > API in the Supabase dashboard — this is the
 public anon key, not the backend's service-role key). `API_BASE_URL`
 defaults to `http://localhost:8000` if omitted. See `lib/services/env.dart`.
 
+### Google sign-in setup
+
+"Continue with Gmail" is wired to a real Supabase OAuth flow
+(`AuthService.signInWithGoogle`), but needs configuration this repo can't
+do for you:
+
+1. Enable the Google provider under Authentication > Providers in the
+   Supabase dashboard, with a Google Cloud OAuth client ID/secret.
+2. Add `com.drowzydiary.drowzydiary://login-callback` to the redirect URL
+   allow-list under Authentication > URL Configuration.
+
+The Android intent-filter and iOS `CFBundleURLTypes` for that redirect
+scheme are already in place (`android/app/src/main/AndroidManifest.xml`,
+`ios/Runner/Info.plist`) — don't need to match anything on the web build,
+where the OAuth redirect goes through the browser's own URL instead.
+
 ## Layout
 
 - `lib/theme/` - night/morning `Palette`s, Nunito text theme, and the
@@ -42,7 +58,25 @@ defaults to `http://localhost:8000` if omitted. See `lib/services/env.dart`.
   Check-in / Profile), `ChatScreen`, `RecapDetailScreen`.
 - `lib/widgets/` - shared pieces: crescent-moon/sun icons (custom painters),
   segmented toggle, filter pill, chat bubble, typing indicator, sleep bar
-  chart, factor tile, bottom nav bar, breathing circle.
+  chart, factor tile, bottom nav bar, breathing circle, twinkling
+  `StarFieldBackground`, `MicPermissionModal`, `DeleteConfirmModal`,
+  `NotificationBanner`, `GoogleLogo` (rendered via `flutter_svg`).
+
+## Feature notes
+
+- **Mic permission**: the first tap on the mic in a check-in shows an
+  Allow/Not Now prompt (`AppState.micPermStatus`); denying it silently
+  no-ops on later taps rather than re-prompting.
+- **Delete confirmation**: the recap detail trash icon now opens a confirm
+  step (`requestDeleteEntry` → `showDeleteConfirm`) before the entry is
+  actually removed.
+- **Notification preview**: the two "preview night/morning reminder" links
+  on the Check-in tab show a fake system-notification banner
+  (`NotificationBanner`) that auto-dismisses after 6s; tapping it deep-links
+  into that check-in, like tapping a real push notification would.
+- **Password confirmation**: signup requires a matching confirm-password
+  field before it will submit; the mismatch error only appears after a
+  submit attempt, not while still typing.
 
 ## Notes on fidelity
 

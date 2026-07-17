@@ -14,7 +14,8 @@ class CheckinTab extends StatelessWidget {
     final app = context.watch<AppState>();
     final t = app.t;
 
-    return Column(
+    return SingleChildScrollView(
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SizedBox(
@@ -62,7 +63,29 @@ class CheckinTab extends StatelessWidget {
           subtitle: t.reflect,
           onTap: () => app.selectCheckin(CheckinMode.morning),
         ),
+        const SizedBox(height: 22),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            GestureDetector(
+              onTap: app.previewNightNotif,
+              child: Text(
+                t.previewNightNotif,
+                style: const TextStyle(fontSize: 12, color: Color(0x59EDE7E2), decoration: TextDecoration.underline),
+              ),
+            ),
+            const SizedBox(width: 20),
+            GestureDetector(
+              onTap: app.previewMorningNotif,
+              child: Text(
+                t.previewMorningNotif,
+                style: const TextStyle(fontSize: 12, color: Color(0x59EDE7E2), decoration: TextDecoration.underline),
+              ),
+            ),
+          ],
+        ),
       ],
+      ),
     );
   }
 }

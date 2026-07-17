@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show AuthException;
+import 'package:supabase_flutter/supabase_flutter.dart' show AuthChangeEvent, AuthException, AuthState;
 
 import '../data/date_format.dart';
 import '../data/mock_data.dart' show sttSample;
@@ -28,6 +28,8 @@ enum CheckinMode { night, morning }
 enum InputMode { stt, tts }
 
 enum RecapFilter { all, night, morning }
+
+enum MicPermStatus { unasked, granted, denied }
 
 /// A recap entry plus the group date-label it belongs to, resolved once a
 /// user opens it — mirrors the design's `selectedEntryObj`.
@@ -57,12 +59,21 @@ class AppState extends ChangeNotifier {
         _profileService = profileService ??
             ProfileService(apiClient ?? ApiClient(authService ?? AuthService.instance())) {
     _bootstrap();
+    // Google OAuth completes via an external browser + deep-link redirect,
+    // not a value we can await directly — this is what actually moves us
+    // to Home once that redirect lands and Supabase picks up the session.
+    _authSub = _authService.onAuthStateChange.listen((data) {
+      if (data.event == AuthChangeEvent.signedIn && screen == AppScreen.auth) {
+        goHome();
+      }
+    });
   }
 
   final AuthService _authService;
   final ChatService _chatService;
   final RecapService _recapService;
   final ProfileService _profileService;
+  StreamSubscription<AuthState>? _authSub;
 
   AppScreen screen = AppScreen.auth;
   AuthMode authMode = AuthMode.login;
@@ -70,6 +81,7 @@ class AppState extends ChangeNotifier {
   CheckinMode? checkinMode;
 
   bool isAuthLoading = false;
+  bool isGoogleLoading = false;
   String? authError;
 
   final List<ChatMessage> messages = [];
@@ -80,6 +92,9 @@ class AppState extends ChangeNotifier {
   String? _currentSessionId;
   bool checkinCompleted = false;
 
+  MicPermStatus micPermStatus = MicPermStatus.unasked;
+  bool showMicPermModal = false;
+
   bool bedtimeMode = false;
 
   List<RecapGroup> recapData = [];
@@ -87,6 +102,13 @@ class AppState extends ChangeNotifier {
   RecapFilter recapFilter = RecapFilter.all;
   DateTime? selectedMonth;
   String? selectedEntryId;
+  bool showDeleteConfirm = false;
+
+  /// Which reminder the "preview night/morning reminder" links in the
+  /// Check-in tab are currently showing in [NotificationBanner].
+  CheckinMode? notifPreviewType;
+  bool notifOpen = false;
+  Timer? _notifTimer;
 
   String? expandedFactorKey;
   List<SleepFactor> sleepFactors = [];
@@ -159,6 +181,26 @@ class AppState extends ChangeNotifier {
       authError = 'Something went wrong. Please try again.';
     } finally {
       isAuthLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Launches the Google OAuth flow. This returns as soon as the external
+  /// browser opens — it does NOT mean the user is signed in yet. The actual
+  /// navigation to Home happens in the `onAuthStateChange` listener set up
+  /// in the constructor, once the OAuth redirect lands back in the app.
+  Future<void> signInWithGoogle() async {
+    authError = null;
+    isGoogleLoading = true;
+    notifyListeners();
+    try {
+      await _authService.signInWithGoogle();
+    } on AuthException catch (e) {
+      authError = e.message;
+    } catch (_) {
+      authError = 'Something went wrong. Please try again.';
+    } finally {
+      isGoogleLoading = false;
       notifyListeners();
     }
   }
@@ -281,12 +323,22 @@ class AppState extends ChangeNotifier {
   }
 
   void startVoiceInput() {
-    // STT (Whisper) isn't wired up yet — this still simulates a recognized
-    // phrase so the voice-input UI can be exercised end to end.
     if (draft.trim().isNotEmpty) {
       sendMessage();
       return;
     }
+    if (micPermStatus == MicPermStatus.unasked) {
+      showMicPermModal = true;
+      notifyListeners();
+      return;
+    }
+    if (micPermStatus == MicPermStatus.denied) return;
+    _beginRecording();
+  }
+
+  void _beginRecording() {
+    // STT (Whisper) isn't wired up yet — this still simulates a recognized
+    // phrase so the voice-input UI can be exercised end to end.
     isRecording = true;
     notifyListeners();
     _recordingTimer?.cancel();
@@ -294,6 +346,19 @@ class AppState extends ChangeNotifier {
       isRecording = false;
       sendMessage(sttSample);
     });
+  }
+
+  void allowMicPerm() {
+    micPermStatus = MicPermStatus.granted;
+    showMicPermModal = false;
+    notifyListeners();
+    _beginRecording();
+  }
+
+  void denyMicPerm() {
+    micPermStatus = MicPermStatus.denied;
+    showMicPermModal = false;
+    notifyListeners();
   }
 
   // --- recap ------------------------------------------------------------
@@ -366,6 +431,16 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void requestDeleteEntry() {
+    showDeleteConfirm = true;
+    notifyListeners();
+  }
+
+  void cancelDeleteEntry() {
+    showDeleteConfirm = false;
+    notifyListeners();
+  }
+
   Future<void> deleteEntry() async {
     final id = selectedEntryId;
     if (id == null) return;
@@ -374,6 +449,7 @@ class AppState extends ChangeNotifier {
     }
     recapData.removeWhere((group) => group.items.isEmpty);
     selectedEntryId = null;
+    showDeleteConfirm = false;
     notifyListeners();
 
     try {
@@ -433,6 +509,38 @@ class AppState extends ChangeNotifier {
       }
     }
     return null;
+  }
+
+  // --- notification preview ------------------------------------------------
+
+  void previewNightNotif() => _showNotifBanner(CheckinMode.night);
+  void previewMorningNotif() => _showNotifBanner(CheckinMode.morning);
+
+  void _showNotifBanner(CheckinMode type) {
+    _notifTimer?.cancel();
+    notifPreviewType = type;
+    notifOpen = true;
+    notifyListeners();
+    _notifTimer = Timer(const Duration(seconds: 6), () {
+      notifOpen = false;
+      notifyListeners();
+    });
+  }
+
+  void dismissNotifBanner() {
+    _notifTimer?.cancel();
+    notifOpen = false;
+    notifyListeners();
+  }
+
+  /// Tapping the banner itself, like tapping a real push notification, deep
+  /// links straight into that check-in's chat.
+  Future<void> openNotifBanner() async {
+    final type = notifPreviewType;
+    _notifTimer?.cancel();
+    notifOpen = false;
+    notifyListeners();
+    if (type != null) await selectCheckin(type);
   }
 
   // --- profile ------------------------------------------------------------
@@ -541,6 +649,8 @@ class AppState extends ChangeNotifier {
   @override
   void dispose() {
     _recordingTimer?.cancel();
+    _notifTimer?.cancel();
+    _authSub?.cancel();
     super.dispose();
   }
 }

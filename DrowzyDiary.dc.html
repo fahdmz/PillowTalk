@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;}
+body{margin:0;}
+a{color:#B7A6C9;text-decoration:none;}
+a:hover{color:#D8C9E8;}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:0.5;}50%{transform:scale(1.15);opacity:0.85;}}
+@keyframes micPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(107,84,132,0.35);}50%{transform:scale(1.08);box-shadow:0 0 0 8px rgba(107,84,132,0);}}
+@keyframes appIn{0%{transform:translateY(28px) scale(0.98);}100%{transform:translateY(0) scale(1);}}
+@keyframes labelIn{0%{transform:translateY(-6px);}100%{transform:translateY(0);}}
+@keyframes bubbleIn{0%{transform:translateY(8px);}100%{transform:translateY(0);}}
+@keyframes slideInRight{0%{transform:translateX(36px);}100%{transform:translateX(0);}}
+@keyframes typingBounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+@keyframes fadeIn{0%{opacity:0;}100%{opacity:1;}}
+@keyframes starTwinkle{0%,100%{opacity:0;transform:scale(0.6);}50%{opacity:var(--star-max,0.7);transform:scale(1);}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#EAE6DF;padding:60px 20px;font-family:'Nunito',sans-serif;">
+  <div style="font-size:12px;letter-spacing:0.5px;color:rgba(40,35,30,0.4);text-transform:uppercase;animation:labelIn .6s ease both;">DrowzyDiary — prototype</div>
+  <div style="animation:appIn .7s cubic-bezier(0.22,1,0.36,1) both;">
+  <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ deviceDark }}" hint-size="402px,874px">
+    <div style="height:100%;display:flex;flex-direction:column;position:relative;overflow:hidden;transition:filter .6s ease;filter:{{ bedtimeFilter }};">
+
+      <div onClick="{{ openNotifBanner }}" style="position:absolute;top:54px;left:12px;right:12px;z-index:80;display:flex;gap:12px;align-items:flex-start;background:rgba(28,24,40,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.09);border-radius:20px;padding:13px 14px;box-shadow:0 16px 34px rgba(0,0,0,0.4);cursor:pointer;transform:{{ notifTransform }};transition:transform .5s cubic-bezier(0.22,1,0.36,1);">
+        <div style="width:36px;height:36px;border-radius:10px;background:{{ notifIconBg }};display:flex;align-items:center;justify-content:center;color:{{ notifIconColor }};flex-shrink:0;">
+          <sc-if value="{{ notifIsNight }}" hint-placeholder-val="{{ true }}">
+            <svg width="17" height="17" viewBox="0 0 20 20"><mask id="notifmoon"><rect width="20" height="20" fill="white"></rect><circle cx="14" cy="7" r="7" fill="black"></circle></mask><circle cx="10" cy="10" r="8" fill="currentColor" mask="url(#notifmoon)"></circle></svg>
+          </sc-if>
+          <sc-if value="{{ notifIsMorning }}" hint-placeholder-val="{{ false }}">
+            <svg width="16" height="16" viewBox="0 0 20 20"><circle cx="10" cy="10" r="4" fill="currentColor"></circle><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="10" y1="0" x2="10" y2="2.5"></line><line x1="10" y1="17.5" x2="10" y2="20"></line><line x1="0" y1="10" x2="2.5" y2="10"></line><line x1="17.5" y1="10" x2="20" y2="10"></line></g></svg>
+          </sc-if>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+            <div style="font-size:12.5px;font-weight:700;color:#EDE7E2;letter-spacing:0.1px;">DrowzyDiary</div>
+            <div style="font-size:11.5px;color:rgba(237,231,226,0.4);">{{ t.notifNow }}</div>
+          </div>
+          <div style="font-size:13px;font-weight:600;color:#EDE7E2;margin-bottom:2px;">{{ notifTitle }}</div>
+          <div style="font-size:12.5px;color:rgba(237,231,226,0.6);line-height:1.4;">{{ notifBody }}</div>
+        </div>
+        <div onClick="{{ dismissNotifBanner }}" style="width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:rgba(237,231,226,0.5);">
+          <svg width="9" height="9" viewBox="0 0 9 9"><path d="M1 1l7 7M8 1l-7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path></svg>
+        </div>
+      </div>
+
+      <sc-if value="{{ showMicPermModal }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;z-index:90;background:rgba(10,8,16,0.55);display:flex;align-items:center;justify-content:center;padding:24px;animation:fadeIn .25s ease both;">
+          <div style="width:100%;max-width:300px;background:{{ chatCard }};border-radius:24px;padding:26px 22px 20px;box-shadow:0 20px 50px rgba(0,0,0,0.4);display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;animation:bubbleIn .3s cubic-bezier(0.22,1,0.36,1) both;">
+            <div style="width:52px;height:52px;border-radius:16px;background:{{ chatAccent }};display:flex;align-items:center;justify-content:center;color:{{ chatText }};margin-bottom:6px;">
+              <svg width="22" height="22" viewBox="0 0 18 18"><rect x="6.5" y="1.5" width="5" height="9" rx="2.5" fill="currentColor"></rect><path d="M3.5 8.5a5.5 5.5 0 0 0 11 0" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"></path><line x1="9" y1="14" x2="9" y2="16.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></line></svg>
+            </div>
+            <div style="font-size:16.5px;font-weight:700;color:{{ chatText }};">{{ t.micPermTitle }}</div>
+            <div style="font-size:13px;color:{{ chatSub }};line-height:1.5;margin-bottom:14px;">{{ t.micPermBody }}</div>
+            <div style="display:flex;flex-direction:column;gap:8px;width:100%;">
+              <div onClick="{{ allowMicPerm }}" style="background:{{ chatAccent }};color:{{ chatText }};padding:13px 0;border-radius:100px;font-size:14.5px;font-weight:700;cursor:pointer;">{{ t.micPermAllow }}</div>
+              <div onClick="{{ denyMicPerm }}" style="color:{{ chatSub }};padding:11px 0;border-radius:100px;font-size:13.5px;font-weight:600;cursor:pointer;">{{ t.micPermDeny }}</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isAuth }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;min-height:100%;padding:64px 28px 40px;background:#000000;color:#EDE7E2;box-sizing:border-box;position:relative;overflow:hidden;">
+        <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;">
+          <sc-for list="{{ starField }}" as="star" hint-placeholder-count="18">
+            <div style="position:absolute;left:{{ star.left }};top:{{ star.top }};width:{{ star.size }};height:{{ star.size }};border-radius:50%;background:#EDE7E2;opacity:0;animation:starTwinkle {{ star.duration }} ease-in-out {{ star.delay }} infinite;--star-max:0.55;"></div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:40px;position:relative;z-index:1;">
+          <svg width="34" height="34" viewBox="0 0 20 20"><mask id="authmoon"><rect width="20" height="20" fill="white"></rect><circle cx="14" cy="7" r="7" fill="black"></circle></mask><circle cx="10" cy="10" r="8" fill="#6B5484" mask="url(#authmoon)"></circle></svg>
+          <div style="font-size:24px;font-weight:700;letter-spacing:0.3px;">DrowzyDiary</div>
+          <div style="font-size:13px;color:rgba(237,231,226,0.5);letter-spacing:0.2px;">{{ t.tagline }}</div>
+        </div>
+
+        <div style="display:flex;background:rgba(255,255,255,0.05);border-radius:100px;padding:4px;margin-bottom:30px;position:relative;z-index:1;">
+          <div onClick="{{ setAuthLogin }}" style="flex:1;text-align:center;padding:11px 0;border-radius:100px;font-size:14px;font-weight:600;cursor:pointer;transition:background .3s ease,color .3s ease;background:{{ loginBg }};color:{{ loginColor }};">{{ t.logIn }}</div>
+          <div onClick="{{ setAuthSignup }}" style="flex:1;text-align:center;padding:11px 0;border-radius:100px;font-size:14px;font-weight:600;cursor:pointer;transition:background .3s ease,color .3s ease;background:{{ signupBg }};color:{{ signupColor }};">{{ t.signUp }}</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;position:relative;z-index:1;">
+          <sc-if value="{{ isSignup }}" hint-placeholder-val="{{ false }}">
+            <input type="text" placeholder="{{ t.fullName }}" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px 18px;color:#EDE7E2;font-size:15px;font-family:'Nunito',sans-serif;outline:none;"/>
+          </sc-if>
+          <input type="email" placeholder="{{ t.email }}" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px 18px;color:#EDE7E2;font-size:15px;font-family:'Nunito',sans-serif;outline:none;"/>
+          <input type="password" value="{{ authPassword }}" onChange="{{ updateAuthPassword }}" placeholder="{{ t.password }}" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px 18px;color:#EDE7E2;font-size:15px;font-family:'Nunito',sans-serif;outline:none;"/>
+          <sc-if value="{{ isSignup }}" hint-placeholder-val="{{ false }}">
+            <input type="password" value="{{ authConfirmPassword }}" onChange="{{ updateAuthConfirmPassword }}" placeholder="{{ t.confirmPassword }}" style="background:rgba(255,255,255,0.05);border:1px solid {{ confirmPasswordBorder }};border-radius:14px;padding:16px 18px;color:#EDE7E2;font-size:15px;font-family:'Nunito',sans-serif;outline:none;"/>
+            <sc-if value="{{ showPasswordMismatch }}" hint-placeholder-val="{{ false }}">
+              <div style="color:#E05A5A;font-size:12.5px;margin-top:-6px;">{{ t.passwordMismatch }}</div>
+            </sc-if>
+          </sc-if>
+        </div>
+
+        <div onClick="{{ submitAuth }}" style="margin-top:26px;text-align:center;background:#392A48;color:#EDE7E2;padding:16px 0;border-radius:100px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:0.2px;box-shadow:0 8px 24px rgba(57,42,72,0.5);transition:transform .25s ease,box-shadow .25s ease;position:relative;z-index:1;" style-hover="transform:translateY(-2px);box-shadow:0 12px 30px rgba(57,42,72,0.65);">
+          <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">{{ t.logIn }}</sc-if>
+          <sc-if value="{{ isSignup }}" hint-placeholder-val="{{ false }}">{{ t.createAccount }}</sc-if>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;margin:22px 0;position:relative;z-index:1;">
+          <div style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></div>
+          <div style="font-size:12px;color:rgba(237,231,226,0.4);">{{ t.orDivider }}</div>
+          <div style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></div>
+        </div>
+
+        <div onClick="{{ goHome }}" style="text-align:center;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#EDE7E2;padding:15px 0;border-radius:100px;font-size:14.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;position:relative;z-index:1;">
+          <svg width="17" height="17" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.6 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.66-3.87 2.66-6.62z"></path><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.95v2.33A9 9 0 0 0 9 18z"></path><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.16.28-1.7V4.97H.95A9 9 0 0 0 0 9c0 1.45.35 2.83.95 4.03l3-2.33z"></path><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.42 0 9 0A9 9 0 0 0 .95 4.97l3 2.33C4.66 5.17 6.65 3.58 9 3.58z"></path></svg>
+          {{ t.continueWithGmail }}
+        </div>
+
+        <div style="flex:1;"></div>
+        <div style="text-align:center;font-size:12px;color:rgba(237,231,226,0.3);position:relative;z-index:1;">{{ t.footer }}</div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isHome }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;height:100%;background:#161320;color:#EDE7E2;position:relative;overflow:hidden;">
+        <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;">
+          <sc-for list="{{ starField }}" as="star" hint-placeholder-count="18">
+            <div style="position:absolute;left:{{ star.left }};top:{{ star.top }};width:{{ star.size }};height:{{ star.size }};border-radius:50%;background:#EDE7E2;opacity:0;animation:starTwinkle {{ star.duration }} ease-in-out {{ star.delay }} infinite;--star-max:0.55;"></div>
+          </sc-for>
+        </div>
+        <div style="flex:1;overflow:auto;padding:60px 24px 24px;position:relative;z-index:1;">
+
+          <sc-if value="{{ isTabRecap }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:26px;font-weight:700;margin-bottom:6px;">{{ t.recap }}</div>
+            <div style="font-size:13px;color:rgba(237,231,226,0.45);margin-bottom:20px;">{{ t.recapSub }}</div>
+            <div style="display:flex;gap:8px;margin-bottom:24px;">
+              <div onClick="{{ setFilterAll }}" style="padding:8px 16px;border-radius:100px;font-size:12.5px;cursor:pointer;transition:background .2s ease,color .2s ease;background:{{ filterAllBg }};color:{{ filterAllColor }};">{{ t.all }}</div>
+              <div onClick="{{ setFilterNight }}" style="padding:8px 16px;border-radius:100px;font-size:12.5px;cursor:pointer;transition:background .2s ease,color .2s ease;background:{{ filterNightBg }};color:{{ filterNightColor }};">{{ t.nightly }}</div>
+              <div onClick="{{ setFilterMorning }}" style="padding:8px 16px;border-radius:100px;font-size:12.5px;cursor:pointer;transition:background .2s ease,color .2s ease;background:{{ filterMorningBg }};color:{{ filterMorningColor }};">{{ t.morning }}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+              <div style="position:relative;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:9px 12px;cursor:pointer;">
+                <div style="font-size:12.5px;color:#EDE7E2;">{{ monthFilterLabel }}</div>
+                <svg width="14" height="14" viewBox="0 0 20 20" style="flex-shrink:0;"><rect x="2.5" y="4" width="15" height="13.5" rx="2.5" stroke="rgba(237,231,226,0.5)" stroke-width="1.4" fill="none"></rect><line x1="2.5" y1="8" x2="17.5" y2="8" stroke="rgba(237,231,226,0.5)" stroke-width="1.4"></line><line x1="6" y1="2" x2="6" y2="5.5" stroke="rgba(237,231,226,0.5)" stroke-width="1.4" stroke-linecap="round"></line><line x1="14" y1="2" x2="14" y2="5.5" stroke="rgba(237,231,226,0.5)" stroke-width="1.4" stroke-linecap="round"></line></svg>
+                <input type="month" value="{{ selectedDate }}" onChange="{{ updateSelectedDate }}" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;"/>
+              </div>
+              <sc-if value="{{ hasSelectedDate }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ clearSelectedDate }}" style="font-size:12px;color:rgba(237,231,226,0.5);cursor:pointer;text-decoration:underline;">{{ t.clear }}</div>
+              </sc-if>
+            </div>
+            <sc-for list="{{ recapGroups }}" as="group" hint-placeholder-count="2">
+              <div style="margin-bottom:22px;">
+                <div style="font-size:13px;font-weight:600;color:rgba(237,231,226,0.55);margin-bottom:10px;">{{ group.dateLabel }}</div>
+                <sc-for list="{{ group.items }}" as="entry" hint-placeholder-count="2">
+                  <div onClick="{{ entry.open }}" style="display:flex;align-items:center;gap:12px;background:{{ entry.cardBg }};border-radius:16px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:background .2s ease;" style-hover="background:{{ entry.cardHover }};">
+                    <div style="width:34px;height:34px;border-radius:12px;background:{{ entry.iconBg }};display:flex;align-items:center;justify-content:center;color:{{ entry.iconColor }};flex-shrink:0;">
+                      <sc-if value="{{ entry.isNight }}" hint-placeholder-val="{{ true }}">
+                        <svg width="15" height="15" viewBox="0 0 20 20"><mask id="recapmoon{{ entry.id }}"><rect width="20" height="20" fill="white"></rect><circle cx="14" cy="7" r="7" fill="black"></circle></mask><circle cx="10" cy="10" r="8" fill="currentColor" mask="url(#recapmoon{{ entry.id }})"></circle></svg>
+                      </sc-if>
+                      <sc-if value="{{ entry.isDay }}" hint-placeholder-val="{{ false }}">
+                        <svg width="14" height="14" viewBox="0 0 20 20"><circle cx="10" cy="10" r="4" fill="currentColor"></circle><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="10" y1="0" x2="10" y2="2.5"></line><line x1="10" y1="17.5" x2="10" y2="20"></line><line x1="0" y1="10" x2="2.5" y2="10"></line><line x1="17.5" y1="10" x2="20" y2="10"></line></g></svg>
+                      </sc-if>
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-size:12px;color:rgba(237,231,226,0.4);margin-bottom:3px;">{{ entry.timeDisplay }}</div>
+                      <div style="font-size:13.5px;color:#EDE7E2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ entry.preview }}</div>
+                    </div>
+                    <svg width="7" height="12" viewBox="0 0 7 12" style="flex-shrink:0;opacity:0.3;"><path d="M1 1l5 5-5 5" stroke="#EDE7E2" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </sc-if>
+
+          <sc-if value="{{ isTabCheckin }}" hint-placeholder-val="{{ true }}">
+            <div style="min-height:100%;display:flex;flex-direction:column;justify-content:center;">
+            <div style="position:relative;display:flex;flex-direction:column;align-items:center;padding:30px 0 10px;margin-bottom:20px;">
+              <div style="position:absolute;top:6px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(107,84,132,0.35),transparent 70%);animation:breathe 5s ease-in-out infinite;"></div>
+              <div style="position:relative;font-size:22px;font-weight:700;text-align:center;">{{ t.readyCheckin }}</div>
+              <div style="position:relative;font-size:13px;color:rgba(237,231,226,0.45);margin-top:6px;text-align:center;">{{ t.chooseMoment }}</div>
+            </div>
+
+            <div onClick="{{ selectNight }}" style="display:flex;align-items:center;gap:16px;background:#1F1B2E;border-radius:22px;padding:22px;margin-bottom:16px;cursor:pointer;border:1px solid rgba(255,255,255,0.05);transition:transform .25s ease,border-color .25s ease;" style-hover="transform:translateY(-3px);border-color:rgba(255,255,255,0.16);">
+              <div style="width:52px;height:52px;border-radius:16px;background:#392A48;display:flex;align-items:center;justify-content:center;color:#EDE7E2;flex-shrink:0;">
+                <svg width="24" height="24" viewBox="0 0 20 20"><mask id="nightcardmoon"><rect width="20" height="20" fill="white"></rect><circle cx="14" cy="7" r="7" fill="black"></circle></mask><circle cx="10" cy="10" r="8" fill="currentColor" mask="url(#nightcardmoon)"></circle></svg>
+              </div>
+              <div style="flex:1;">
+                <div style="font-size:16px;font-weight:700;margin-bottom:3px;">{{ t.nightlyCheckin }}</div>
+                <div style="font-size:12.5px;color:rgba(237,231,226,0.45);">{{ t.windDown }}</div>
+              </div>
+              <svg width="7" height="12" viewBox="0 0 7 12" style="opacity:0.35;flex-shrink:0;"><path d="M1 1l5 5-5 5" stroke="#EDE7E2" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </div>
+
+            <div onClick="{{ selectMorning }}" style="display:flex;align-items:center;gap:16px;background:#241F33;border-radius:22px;padding:22px;cursor:pointer;border:1px solid rgba(255,255,255,0.05);transition:transform .25s ease,border-color .25s ease;" style-hover="transform:translateY(-3px);border-color:rgba(255,255,255,0.16);">
+              <div style="width:52px;height:52px;border-radius:16px;background:#C08A63;display:flex;align-items:center;justify-content:center;color:#2A1F16;flex-shrink:0;">
+                <svg width="22" height="22" viewBox="0 0 20 20"><circle cx="10" cy="10" r="4" fill="currentColor"></circle><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="10" y1="0" x2="10" y2="2.5"></line><line x1="10" y1="17.5" x2="10" y2="20"></line><line x1="0" y1="10" x2="2.5" y2="10"></line><line x1="17.5" y1="10" x2="20" y2="10"></line><line x1="2.9" y1="2.9" x2="4.7" y2="4.7"></line><line x1="15.3" y1="15.3" x2="17.1" y2="17.1"></line><line x1="2.9" y1="17.1" x2="4.7" y2="15.3"></line><line x1="15.3" y1="4.7" x2="17.1" y2="2.9"></line></g></svg>
+              </div>
+              <div style="flex:1;">
+                <div style="font-size:16px;font-weight:700;margin-bottom:3px;">{{ t.morningCheckin }}</div>
+                <div style="font-size:12.5px;color:rgba(237,231,226,0.45);">{{ t.reflect }}</div>
+              </div>
+              <svg width="7" height="12" viewBox="0 0 7 12" style="opacity:0.35;flex-shrink:0;"><path d="M1 1l5 5-5 5" stroke="#EDE7E2" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </div>
+
+            <div style="display:flex;justify-content:center;gap:20px;margin-top:22px;">
+              <div onClick="{{ previewNightNotif }}" style="font-size:12px;color:rgba(237,231,226,0.35);cursor:pointer;text-decoration:underline;">{{ t.previewNightNotif }}</div>
+              <div onClick="{{ previewMorningNotif }}" style="font-size:12px;color:rgba(237,231,226,0.35);cursor:pointer;text-decoration:underline;">{{ t.previewMorningNotif }}</div>
+            </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isTabProfile }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+              <div>
+                <div style="font-size:24px;font-weight:700;margin-bottom:3px;">Alex Rivera</div>
+                <div style="font-size:13px;color:rgba(237,231,226,0.45);">{{ age }} {{ t.yearsOld }}</div>
+              </div>
+              <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#392A48,#6B5484);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;flex-shrink:0;">AR</div>
+            </div>
+
+            <div style="background:#1F1B2E;border-radius:20px;padding:20px;margin-bottom:20px;">
+              <div style="font-size:13px;font-weight:600;color:rgba(237,231,226,0.55);margin-bottom:16px;">{{ t.sleepThisWeek }}</div>
+              <div style="display:flex;align-items:flex-end;gap:8px;height:100px;margin-bottom:10px;">
+                <sc-for list="{{ sleepData }}" as="d" hint-placeholder-count="7">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+                    <div style="width:100%;border-radius:6px 6px 3px 3px;transition:height .5s ease;background:{{ d.barColor }};height:{{ d.barHeightPct }}%;min-height:4px;"></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <sc-for list="{{ sleepData }}" as="d2" hint-placeholder-count="7">
+                  <div style="flex:1;text-align:center;font-size:11px;color:rgba(237,231,226,0.4);">{{ d2.day }}</div>
+                </sc-for>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:18px;">
+                <div style="flex:1;background:rgba(255,255,255,0.04);border-radius:14px;padding:12px 14px;">
+                  <div style="font-size:11px;color:rgba(237,231,226,0.4);margin-bottom:4px;">{{ t.avgSleep }}</div>
+                  <div style="font-size:16px;font-weight:700;">11:40 PM</div>
+                </div>
+                <div style="flex:1;background:rgba(255,255,255,0.04);border-radius:14px;padding:12px 14px;">
+                  <div style="font-size:11px;color:rgba(237,231,226,0.4);margin-bottom:4px;">{{ t.avgWake }}</div>
+                  <div style="font-size:16px;font-weight:700;">6:52 AM</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-bottom:24px;">
+              <div style="font-size:13px;font-weight:600;color:rgba(237,231,226,0.55);margin-bottom:12px;">{{ t.sleepInfluencers }}</div>
+              <div style="background:#1F1B2E;border-radius:18px;overflow:hidden;">
+                <sc-for list="{{ factors }}" as="factor" hint-placeholder-count="4">
+                  <div style="border-bottom:{{ factor.borderStyle }};">
+                    <div onClick="{{ factor.toggle }}" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;transition:background .2s ease;" style-hover="background:rgba(255,255,255,0.03);">
+                      <div style="display:flex;align-items:center;gap:8px;">
+                        <svg width="9" height="9" viewBox="0 0 9 9" style="transform:{{ factor.chevronRotate }};transition:transform .2s ease;flex-shrink:0;"><path d="M1 1l3.5 3.5L1 8" stroke="rgba(237,231,226,0.4)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                        <div style="font-size:14px;color:#EDE7E2;">{{ factor.name }}</div>
+                      </div>
+                      <div style="font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:100px;background:{{ factor.badgeBg }};color:{{ factor.badgeColor }};">{{ factor.level }}</div>
+                    </div>
+                    <sc-if value="{{ factor.expanded }}" hint-placeholder-val="{{ false }}">
+                      <div style="padding:0 16px 16px 27px;display:flex;flex-direction:column;gap:8px;">
+                        <div style="font-size:11px;color:rgba(237,231,226,0.35);margin-bottom:2px;">{{ t.loggedDuring }}</div>
+                        <sc-for list="{{ factor.occurrences }}" as="occ" hint-placeholder-count="2">
+                          <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.04);border-radius:12px;padding:9px 12px;">
+                            <div style="font-size:12.5px;color:rgba(237,231,226,0.75);">{{ occ.label }}</div>
+                            <div style="font-size:11px;color:rgba(237,231,226,0.4);">{{ occ.time }}</div>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="font-size:11px;color:rgba(237,231,226,0.3);margin-top:10px;">{{ t.autoDetected }}</div>
+            </div>
+
+            <div>
+              <div style="font-size:13px;font-weight:600;color:rgba(237,231,226,0.55);margin-bottom:12px;">{{ t.settings }}</div>
+              <div style="background:#1F1B2E;border-radius:18px;overflow:hidden;">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid rgba(255,255,255,0.06);transition:background .2s ease;" style-hover="background:rgba(255,255,255,0.03);">
+                  <div style="font-size:14.5px;">{{ t.reminderTone }}</div>
+                  <div style="font-size:13px;color:rgba(237,231,226,0.4);">{{ t.chimes }}</div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid rgba(255,255,255,0.06);transition:background .2s ease;" style-hover="background:rgba(255,255,255,0.03);">
+                  <div style="font-size:14.5px;">{{ t.quietHours }}</div>
+                  <div style="font-size:13px;color:rgba(237,231,226,0.4);">10:00 PM – 7:00 AM</div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;">
+                  <div>
+                    <div style="font-size:14.5px;margin-bottom:2px;">{{ t.bedtimeMode }}</div>
+                    <div style="font-size:12px;color:rgba(237,231,226,0.4);">{{ t.bedtimeDesc }}</div>
+                  </div>
+                  <div onClick="{{ toggleBedtime }}" style="width:44px;height:26px;border-radius:100px;position:relative;cursor:pointer;transition:background .3s ease;background:{{ bedtimeTrackBg }};flex-shrink:0;">
+                    <div style="position:absolute;top:2px;left:{{ bedtimeHandleLeft }}px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .3s ease;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-top:1px solid rgba(255,255,255,0.06);">
+                  <div style="font-size:14.5px;">{{ t.age }}</div>
+                  <sc-if value="{{ isEditingAge }}" hint-placeholder-val="{{ false }}">
+                    <input type="number" value="{{ ageDraft }}" onChange="{{ updateAgeDraft }}" onKeyDown="{{ handleAgeKeyDown }}" autoFocus="{{ true }}" style="width:56px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 8px;color:#EDE7E2;font-size:13px;font-family:'Nunito',sans-serif;outline:none;text-align:right;"/>
+                  </sc-if>
+                  <sc-if value="{{ isEditingAge }}" hint-placeholder-val="{{ false }}">
+                    <div onClick="{{ saveAge }}" style="font-size:12.5px;color:#B7A6C9;cursor:pointer;margin-left:8px;">{{ t.save }}</div>
+                  </sc-if>
+                  <sc-if value="{{ notEditingAge }}" hint-placeholder-val="{{ true }}">
+                    <div onClick="{{ startEditAge }}" style="font-size:13px;color:rgba(237,231,226,0.4);cursor:pointer;">{{ age }}</div>
+                  </sc-if>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-top:1px solid rgba(255,255,255,0.06);">
+                  <div style="font-size:14.5px;">{{ t.language }}</div>
+                  <div style="display:flex;background:rgba(255,255,255,0.05);border-radius:100px;padding:3px;">
+                    <div onClick="{{ setLangEn }}" style="padding:6px 14px;border-radius:100px;font-size:12px;font-weight:600;cursor:pointer;transition:background .2s ease,color .2s ease;background:{{ langEnBg }};color:{{ langEnColor }};">EN</div>
+                    <div onClick="{{ setLangId }}" style="padding:6px 14px;border-radius:100px;font-size:12px;font-weight:600;cursor:pointer;transition:background .2s ease,color .2s ease;background:{{ langIdBg }};color:{{ langIdColor }};">ID</div>
+                  </div>
+                </div>
+
+            <div onClick="{{ logOut }}" style="margin-top:20px;text-align:center;background:rgba(224,110,90,0.12);color:#E88C77;padding:15px 0;border-radius:16px;font-size:14.5px;font-weight:700;cursor:pointer;transition:background .2s ease;" style-hover="background:rgba(224,110,90,0.2);">{{ t.logOut }}</div>
+          </sc-if>
+
+        </div>
+
+        <div style="display:flex;position:relative;padding:10px 16px 28px;background:rgba(22,19,32,0.9);border-top:1px solid rgba(255,255,255,0.06);flex-shrink:0;">
+          <div style="position:absolute;top:6px;left:{{ tabIndicatorLeft }};width:calc((100% - 32px)/3);height:48px;background:rgba(107,84,132,0.18);border-radius:16px;transition:left .35s cubic-bezier(0.4,0,0.2,1);pointer-events:none;"></div>
+          <div onClick="{{ setTabRecap }}" style="position:relative;flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:{{ recapTabColor }};transition:transform .2s ease,color .2s ease;" style-hover="transform:translateY(-2px);">
+            <svg width="20" height="20" viewBox="0 0 20 20"><line x1="3" y1="5" x2="17" y2="5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></line><line x1="3" y1="10" x2="17" y2="10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></line><line x1="3" y1="15" x2="12" y2="15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></line></svg>
+            <div style="font-size:11px;font-weight:600;">{{ t.navRecap }}</div>
+          </div>
+          <div onClick="{{ setTabCheckin }}" style="position:relative;flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:{{ checkinTabColor }};transition:transform .2s ease,color .2s ease;" style-hover="transform:translateY(-2px);">
+            <svg width="20" height="20" viewBox="0 0 20 20"><path d="M2 4.5A2.5 2.5 0 0 1 4.5 2h11A2.5 2.5 0 0 1 18 4.5v6A2.5 2.5 0 0 1 15.5 13H8l-4 3.5V13H4.5A2.5 2.5 0 0 1 2 10.5v-6z" fill="currentColor"></path></svg>
+            <div style="font-size:11px;font-weight:600;">{{ t.navCheckin }}</div>
+          </div>
+          <div onClick="{{ setTabProfile }}" style="position:relative;flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:{{ profileTabColor }};transition:transform .2s ease,color .2s ease;" style-hover="transform:translateY(-2px);">
+            <svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="6.5" r="3.5" fill="currentColor"></circle><path d="M3 18c0-3.9 3.1-6.5 7-6.5s7 2.6 7 6.5" fill="currentColor"></path></svg>
+            <div style="font-size:11px;font-weight:600;">{{ t.navProfile }}</div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isChat }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;height:100%;background:{{ chatBg }};color:{{ chatText }};transition:background .5s ease,color .5s ease;">
+        <div style="display:flex;align-items:center;gap:12px;padding:56px 20px 16px;border-bottom:1px solid {{ chatDivider }};flex-shrink:0;">
+          <div onClick="{{ exitChat }}" style="width:34px;height:34px;border-radius:50%;background:{{ chatCard }};display:flex;align-items:center;justify-content:center;cursor:pointer;color:{{ chatSub }};flex-shrink:0;transition:opacity .2s ease;" style-hover="opacity:0.7;">
+            <svg width="14" height="14" viewBox="0 0 16 16"><line x1="2" y1="2" x2="14" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></line><line x1="14" y1="2" x2="2" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></line></svg>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:15.5px;font-weight:700;">{{ chatModeLabel }}</div>
+            <div style="font-size:11.5px;color:{{ chatSub }};">{{ t.listeningNoJudgment }}</div>
+          </div>
+        </div>
+
+        <div ref="{{ setChatRef }}" style="flex:1;overflow:auto;padding:20px 18px;display:flex;flex-direction:column;gap:14px;">
+          <sc-for list="{{ messages }}" as="msg" hint-placeholder-count="2">
+            <div style="display:flex;justify-content:{{ msg.align }};">
+              <div style="max-width:78%;padding:13px 16px;border-radius:18px;font-size:14.5px;line-height:1.55;background:{{ msg.bubbleBg }};color:{{ msg.bubbleColor }};animation:bubbleIn .35s ease both;word-wrap:break-word;overflow-wrap:anywhere;white-space:pre-wrap;">{{ msg.text }}</div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ aiTyping }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;justify-content:flex-start;">
+              <div style="padding:14px 18px;border-radius:18px;background:{{ chatCard }};display:flex;gap:5px;align-items:center;">
+                <div style="width:7px;height:7px;border-radius:50%;background:{{ chatSub }};animation:typingBounce 1s ease-in-out infinite;"></div>
+                <div style="width:7px;height:7px;border-radius:50%;background:{{ chatSub }};animation:typingBounce 1s ease-in-out 0.15s infinite;"></div>
+                <div style="width:7px;height:7px;border-radius:50%;background:{{ chatSub }};animation:typingBounce 1s ease-in-out 0.3s infinite;"></div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="padding:14px 16px 26px;border-top:1px solid {{ chatDivider }};flex-shrink:0;">
+          <sc-if value="{{ isRecording }}" hint-placeholder-val="{{ false }}">
+            <div style="text-align:center;font-size:12.5px;color:{{ chatSub }};margin-bottom:10px;">{{ t.listening }}</div>
+          </sc-if>
+          <div style="text-align:center;font-size:10.5px;color:{{ chatSub }};margin-bottom:8px;">{{ inputModeLabel }}</div>
+          <div style="display:flex;align-items:center;gap:8px;background:{{ chatCard }};border-radius:100px;padding:6px;">
+            <div onClick="{{ toggleInputMode }}" style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:{{ leftIconBg }};color:{{ leftIconColor }};cursor:pointer;flex-shrink:0;transition:transform .2s ease,background .25s ease,color .25s ease;" style-hover="transform:scale(1.1);">
+              <sc-if value="{{ isSTT }}" hint-placeholder-val="{{ true }}">
+                <svg width="18" height="18" viewBox="0 0 18 18"><path d="M2 6.5h3l4-3.2v11.4l-4-3.2H2z" fill="currentColor"></path><line x1="12" y1="5.5" x2="16.5" y2="11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></line><line x1="16.5" y1="5.5" x2="12" y2="11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></line></svg>
+              </sc-if>
+              <sc-if value="{{ isTTS }}" hint-placeholder-val="{{ false }}">
+                <svg width="18" height="18" viewBox="0 0 18 18"><path d="M2 6.5h3l4-3.2v11.4l-4-3.2H2z" fill="currentColor"></path><path d="M12.5 5.8a4 4 0 0 1 0 6.4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"></path><path d="M14.7 3.8a7.2 7.2 0 0 1 0 10.4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.6"></path></svg>
+              </sc-if>
+            </div>
+            <input type="text" value="{{ draft }}" onChange="{{ updateDraft }}" onKeyDown="{{ handleKeyDown }}" placeholder="{{ t.typeOrSpeak }}" style="flex:1;border:none;outline:none;background:transparent;font-size:14.5px;font-family:'Nunito',sans-serif;color:{{ chatText }};padding:8px 4px;"/>
+            <sc-if value="{{ hasDraft }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ sendMessage }}" style="width:38px;height:38px;border-radius:50%;background:{{ chatAccent }};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform .2s ease;" style-hover="transform:scale(1.08);">
+                <svg width="18" height="18" viewBox="0 0 18 18"><path d="M9 3L9 15" stroke="white" stroke-width="2" stroke-linecap="round"></path><path d="M4 8L9 3L14 8" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              </div>
+            </sc-if>
+            <sc-if value="{{ noDraft }}" hint-placeholder-val="{{ true }}">
+              <div onClick="{{ startVoiceInput }}" style="width:38px;height:38px;border-radius:50%;background:{{ chatCardAlt }};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:{{ chatSub }};animation:{{ micAnim }};transition:transform .2s ease;" style-hover="transform:scale(1.08);">
+                <svg width="16" height="16" viewBox="0 0 18 18"><rect x="6.5" y="1.5" width="5" height="9" rx="2.5" fill="currentColor"></rect><path d="M3.5 8.5a5.5 5.5 0 0 0 11 0" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"></path><line x1="9" y1="14" x2="9" y2="16.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></line><line x1="6" y1="16.5" x2="12" y2="16.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></line></svg>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ showRecapDetail }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;background:{{ detailBg }};color:{{ detailText }};animation:slideInRight .32s cubic-bezier(0.22,1,0.36,1) both;">
+        <div style="display:flex;align-items:center;gap:12px;padding:56px 20px 16px;border-bottom:1px solid {{ detailDivider }};flex-shrink:0;">
+          <div onClick="{{ closeRecapDetail }}" style="width:34px;height:34px;border-radius:50%;background:{{ detailCard }};display:flex;align-items:center;justify-content:center;cursor:pointer;color:{{ detailSub }};flex-shrink:0;transition:transform .2s ease;" style-hover="transform:scale(1.08);">
+            <svg width="14" height="14" viewBox="0 0 16 16"><path d="M10 2L4 8l6 6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:15.5px;font-weight:700;">{{ detailDateLabel }}</div>
+            <div style="font-size:11.5px;color:{{ detailSub }};">{{ detailTime }}</div>
+          </div>
+          <div onClick="{{ deleteEntry }}" style="width:34px;height:34px;border-radius:50%;background:{{ detailCard }};display:flex;align-items:center;justify-content:center;cursor:pointer;color:{{ detailSub }};flex-shrink:0;transition:transform .2s ease;" style-hover="transform:scale(1.08);">
+            <svg width="14" height="14" viewBox="0 0 16 16"><path d="M3 5h10M6.5 5V3.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1V5M4.5 5l.7 8.2a1 1 0 0 0 1 .8h3.6a1 1 0 0 0 1-.8L11.5 5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </div>
+        </div>
+
+        <sc-if value="{{ showDeleteConfirm }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;z-index:10;background:rgba(10,8,16,0.55);display:flex;align-items:center;justify-content:center;padding:24px;animation:fadeIn .2s ease both;">
+            <div style="width:100%;max-width:290px;background:{{ detailCard }};border-radius:22px;padding:24px 20px 18px;box-shadow:0 20px 50px rgba(0,0,0,0.4);display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;animation:bubbleIn .28s cubic-bezier(0.22,1,0.36,1) both;">
+              <div style="width:46px;height:46px;border-radius:14px;background:rgba(224,90,90,0.15);display:flex;align-items:center;justify-content:center;color:#E05A5A;margin-bottom:6px;">
+                <svg width="19" height="19" viewBox="0 0 16 16"><path d="M3 5h10M6.5 5V3.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1V5M4.5 5l.7 8.2a1 1 0 0 0 1 .8h3.6a1 1 0 0 0 1-.8L11.5 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              </div>
+              <div style="font-size:16px;font-weight:700;color:{{ detailText }};">{{ t.deleteEntryTitle }}</div>
+              <div style="font-size:13px;color:{{ detailSub }};line-height:1.5;margin-bottom:12px;">{{ t.deleteEntryBody }}</div>
+              <div style="display:flex;flex-direction:column;gap:8px;width:100%;">
+                <div onClick="{{ confirmDeleteEntry }}" style="background:#E05A5A;color:#FFFFFF;padding:13px 0;border-radius:100px;font-size:14.5px;font-weight:700;cursor:pointer;">{{ t.deleteEntryConfirm }}</div>
+                <div onClick="{{ cancelDeleteEntry }}" style="color:{{ detailSub }};padding:11px 0;border-radius:100px;font-size:13.5px;font-weight:600;cursor:pointer;">{{ t.deleteEntryCancel }}</div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+        <div style="flex:1;overflow:auto;padding:20px 18px;display:flex;flex-direction:column;gap:14px;">
+          <sc-for list="{{ detailMessages }}" as="dmsg" hint-placeholder-count="3">
+            <div style="display:flex;justify-content:{{ dmsg.align }};">
+              <sc-if value="{{ dmsg.isCrisis }}" hint-placeholder-val="{{ false }}">
+                <div style="max-width:78%;padding:13px 16px;border-radius:18px;font-size:14.5px;line-height:1.55;background:{{ dmsg.bubbleBg }};color:{{ dmsg.bubbleColor }};word-wrap:break-word;overflow-wrap:anywhere;white-space:pre-wrap;">{{ dmsg.crisisPrefix }}<a href="tel:119" style="font-weight:800;text-decoration:underline;color:inherit;">{{ dmsg.crisisPhone }}</a>{{ dmsg.crisisSuffix }}</div>
+              </sc-if>
+              <sc-if value="{{ dmsg.notCrisis }}" hint-placeholder-val="{{ true }}">
+                <div style="max-width:78%;padding:13px 16px;border-radius:18px;font-size:14.5px;line-height:1.55;background:{{ dmsg.bubbleBg }};color:{{ dmsg.bubbleColor }};word-wrap:break-word;overflow-wrap:anywhere;white-space:pre-wrap;">{{ dmsg.text }}</div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </x-import>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;initialScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;auth&quot;,&quot;options&quot;:[&quot;auth&quot;,&quot;home&quot;,&quot;chat&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Preview navigation&quot;},&quot;initialTab&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;checkin&quot;,&quot;options&quot;:[&quot;recap&quot;,&quot;checkin&quot;,&quot;profile&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Preview navigation&quot;},&quot;initialCheckinMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;night&quot;,&quot;options&quot;:[&quot;night&quot;,&quot;morning&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Preview navigation&quot;}}">
+const NIGHT = { bg:'#161320', card:'#1F1B2E', cardAlt:'#2A2438', accent:'#392A48', accentLight:'#6B5484', text:'#EDE7E2', sub:'rgba(237,231,226,0.55)', divider:'rgba(237,231,226,0.08)', userBubble:'#2E2740' };
+const MORNING = { bg:'#F7F1E9', card:'#FFFFFF', cardAlt:'#F0E4D6', accent:'#C08A63', accentLight:'#DCB693', text:'#3E332B', sub:'rgba(62,51,43,0.5)', divider:'rgba(62,51,43,0.08)', userBubble:'#F0E1CC' };
+
+const NIGHT_REPLIES = {
+  en: [
+    "That sounds like it's been weighing on you. Want to tell me more?",
+    "I hear you. Sometimes naming it helps it feel lighter.",
+    "Thank you for sharing that. Is there anything else keeping your mind busy tonight?"
+  ],
+  id: [
+    "Sepertinya itu cukup membebani pikiranmu. Mau cerita lebih lanjut?",
+    "Aku mendengarmu. Kadang menyebutkannya membuatnya terasa lebih ringan.",
+    "Terima kasih sudah berbagi. Ada hal lain yang mengganggu pikiranmu malam ini?"
+  ],
+};
+const MORNING_REPLIES = {
+  en: [
+    "Thanks for sharing. Sounds like today might feel a bit slow — that's okay.",
+    "Got it, I'll keep that in mind for your sleep patterns.",
+    "That's useful to know. Anything else affecting how you slept?"
+  ],
+  id: [
+    "Terima kasih sudah berbagi. Sepertinya hari ini mungkin terasa agak lambat — tidak apa-apa.",
+    "Baik, aku akan ingat itu untuk pola tidurmu.",
+    "Itu berguna untuk diketahui. Ada hal lain yang memengaruhi tidurmu?"
+  ],
+};
+const GREETINGS = {
+  en: { night:"Hi, I'm here. What's on your mind tonight?", morning:"Good morning. How did you sleep?" },
+  id: { night:"Hai, aku di sini. Apa yang sedang kamu pikirkan malam ini?", morning:"Selamat pagi. Bagaimana tidurmu semalam?" },
+};
+const STT_SAMPLE = "I keep thinking about work and can't switch off.";
+
+const STAR_FIELD = Array.from({ length: 22 }, (_, i) => {
+  const seed = (i * 37.13) % 100;
+  return {
+    left: `${(seed * 3.7) % 100}%`,
+    top: `${(seed * 5.9 + i * 11) % 100}%`,
+    size: `${1 + (i % 3)}px`,
+    duration: `${4 + (i % 5)}s`,
+    delay: `${(i * 0.6) % 6}s`,
+  };
+});
+
+const UI = {
+  en: {
+    tagline:'a quiet place to wind down', logIn:'Log In', signUp:'Sign Up', fullName:'Full name', email:'Email', password:'Password',
+    createAccount:'Create Account', footer:'No pressure. No streaks. Just rest.',
+    confirmPassword:'Confirm password', passwordMismatch:"Passwords don't match", orDivider:'or', continueWithGmail:'Continue with Gmail',
+    recap:'Recap', recapSub:'Your check-in history', all:'All', nightly:'Nightly', morning:'Morning', month:'Month', clear:'Clear',
+    readyCheckin:'Ready to check in?', chooseMoment:'Choose a moment to talk it through',
+    nightlyCheckin:'Nightly Check-in', windDown:'Wind down and talk it through',
+    morningCheckin:'Morning Check-in', reflect:'Reflect on how you slept',
+    notifNow:'now', previewNightNotif:'Preview night reminder', previewMorningNotif:'Preview morning reminder',
+    notifNightTitle:'Time to wind down', notifNightBody:"It's almost bedtime — log tonight's check-in.",
+    notifMorningTitle:'Good morning', notifMorningBody:'How did you sleep? Log your morning check-in.',
+    yearsOld:'years old', sleepThisWeek:'Sleep this week', avgSleep:'Avg. sleep time', avgWake:'Avg. wake time',
+    sleepInfluencers:'Sleep Influencers', autoDetected:'Auto-detected from your check-ins', loggedDuring:'Logged during these check-ins',
+    settings:'Settings', reminderTone:'Reminder tone', chimes:'Chimes', quietHours:'Quiet hours',
+    bedtimeMode:'Bedtime mode', bedtimeDesc:'Dim and desaturate the screen',
+    age:'Age', save:'Save', language:'Language', logOut:'Log Out',
+    navRecap:'Recap', navCheckin:'Check-in', navProfile:'Profile',
+    listeningNoJudgment:'Listening, no judgment', listening:'Listening…', typeOrSpeak:'Type or speak…',
+    voiceInputCaption:'Voice input — tap to switch to AI voice replies', aiVoiceCaption:'AI reads replies aloud — tap to switch to voice input',
+    high:'High', medium:'Medium', low:'Low',
+    micPermTitle:'Allow Microphone Access', micPermBody:'DrowzyDiary uses your microphone to log check-ins by voice. Your audio is never stored.', micPermAllow:'Allow Microphone', micPermDeny:'Not Now',
+    deleteEntryTitle:'Delete this entry?', deleteEntryBody:'This check-in and its conversation will be permanently removed. This can\'t be undone.', deleteEntryConfirm:'Delete Entry', deleteEntryCancel:'Cancel',
+  },
+  id: {
+    tagline:'tempat tenang untuk bersantai', logIn:'Masuk', signUp:'Daftar', fullName:'Nama lengkap', email:'Email', password:'Kata sandi',
+    createAccount:'Buat Akun', footer:'Tanpa tekanan. Tanpa target harian. Cukup istirahat.',
+    confirmPassword:'Konfirmasi kata sandi', passwordMismatch:'Kata sandi tidak cocok', orDivider:'atau', continueWithGmail:'Lanjutkan dengan Gmail',
+    recap:'Rekap', recapSub:'Riwayat check-in kamu', all:'Semua', nightly:'Malam', morning:'Pagi', month:'Bulan', clear:'Hapus',
+    readyCheckin:'Siap check-in?', chooseMoment:'Pilih waktu untuk bercerita',
+    nightlyCheckin:'Check-in Malam', windDown:'Bersantai dan bercerita',
+    morningCheckin:'Check-in Pagi', reflect:'Renungkan tidurmu semalam',
+    notifNow:'sekarang', previewNightNotif:'Pratinjau pengingat malam', previewMorningNotif:'Pratinjau pengingat pagi',
+    notifNightTitle:'Waktunya bersantai', notifNightBody:'Hampir waktu tidur — catat check-in malam ini.',
+    notifMorningTitle:'Selamat pagi', notifMorningBody:'Bagaimana tidurmu? Catat check-in pagi kamu.',
+    yearsOld:'tahun', sleepThisWeek:'Tidur minggu ini', avgSleep:'Rata-rata waktu tidur', avgWake:'Rata-rata waktu bangun',
+    sleepInfluencers:'Pengaruh Tidur', autoDetected:'Terdeteksi otomatis dari check-in kamu', loggedDuring:'Tercatat selama check-in berikut',
+    settings:'Pengaturan', reminderTone:'Nada pengingat', chimes:'Lonceng', quietHours:'Jam tenang',
+    bedtimeMode:'Mode tidur', bedtimeDesc:'Redupkan dan kurangi saturasi layar',
+    age:'Usia', save:'Simpan', language:'Bahasa', logOut:'Keluar',
+    navRecap:'Rekap', navCheckin:'Check-in', navProfile:'Profil',
+    listeningNoJudgment:'Mendengarkan, tanpa menghakimi', listening:'Mendengarkan…', typeOrSpeak:'Ketik atau bicara…',
+    voiceInputCaption:'Input suara — ketuk untuk beralih ke balasan suara AI', aiVoiceCaption:'AI membacakan balasan — ketuk untuk beralih ke input suara',
+    high:'Tinggi', medium:'Sedang', low:'Rendah',
+    micPermTitle:'Izinkan Akses Mikrofon', micPermBody:'DrowzyDiary menggunakan mikrofon untuk mencatat check-in lewat suara. Audio kamu tidak pernah disimpan.', micPermAllow:'Izinkan Mikrofon', micPermDeny:'Nanti Saja',
+    deleteEntryTitle:'Hapus entri ini?', deleteEntryBody:'Check-in ini beserta percakapannya akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.', deleteEntryConfirm:'Hapus Entri', deleteEntryCancel:'Batal',
+  },
+};
+const DATE_LABEL_TR = { en:{ Today:'Today', Yesterday:'Yesterday', Monday:'Monday', 'Last week':'Last week' }, id:{ Today:'Hari ini', Yesterday:'Kemarin', Monday:'Senin', 'Last week':'Minggu lalu' } };
+const DAY_TR = { en:['M','T','W','T','F','S','S'], id:['S','S','R','K','J','S','M'] };
+const FACTOR_NAME_TR = {
+  en:{ 'Late caffeine intake':'Late caffeine intake', 'Screen time before bed':'Screen time before bed', 'Work-related stress':'Work-related stress', 'Irregular bedtime schedule':'Irregular bedtime schedule' },
+  id:{ 'Late caffeine intake':'Kafein larut malam', 'Screen time before bed':'Waktu layar sebelum tidur', 'Work-related stress':'Stres pekerjaan', 'Irregular bedtime schedule':'Jadwal tidur tidak teratur' },
+};
+const CHECKIN_LABEL_TR = { en:{ 'Nightly Check-in':'Nightly Check-in', 'Morning Check-in':'Morning Check-in' }, id:{ 'Nightly Check-in':'Check-in Malam', 'Morning Check-in':'Check-in Pagi' } };
+const TIME_WORD_TR = { en:{}, id:{ Today:'Hari ini', Yesterday:'Kemarin', Monday:'Senin', 'Last week':'Minggu lalu' } };
+function translateTimeWords(str, lang) {
+  if (lang === 'en') return str;
+  let out = str;
+  Object.keys(TIME_WORD_TR.id).forEach(k => { out = out.split(k).join(TIME_WORD_TR.id[k]); });
+  return out;
+}
+
+function isoOffset(days) {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+const RECAP_DATA = [
+  { dateLabel:'Today', dateValue: isoOffset(0), items:[
+    { id:'a', time:'11:42 PM', isNight:true, preview:'Talked about work deadlines keeping me up…', transcript:[
+      {from:'ai',text:"Hi, I'm here. What's on your mind tonight?"},
+      {from:'user',text:"I can't stop thinking about a deadline at work."},
+      {from:'ai',text:"That sounds like it's been weighing on you. Want to tell me more?"},
+      {from:'user',text:"I just keep replaying the presentation in my head."},
+      {from:'ai',text:"Thank you for sharing that. Try to set it down for tonight — it'll be there tomorrow."},
+      {from:'user',text:"Honestly some nights I feel like I want to kill myself."},
+      {from:'ai',crisis:true,crisisPrefix:"I'm really glad you told me, and I'm concerned about you. You don't have to go through this alone. You can call or WhatsApp ",crisisPhone:"119 ext. 8",crisisSuffix:" (SEJIWA, Indonesia's free 24-hour mental health crisis line) to talk with someone who can help. Would you like to talk about what's been going on?"},
+    ]},
+  ]},
+  { dateLabel:'Yesterday', dateValue: isoOffset(1), items:[
+    { id:'b', time:'7:15 AM', isNight:false, preview:'Slept okay, woke up twice around 2am…', transcript:[
+      {from:'ai',text:'Good morning. How did you sleep?'},
+      {from:'user',text:'Okay, but I woke up twice around 2am.'},
+      {from:'ai',text:'Thanks for sharing. Any idea what woke you?'},
+      {from:'user',text:"Might have been the neighbor's dog barking."},
+    ]},
+    { id:'c', time:'11:20 PM', isNight:true, preview:"Feeling anxious about tomorrow's meeting…", transcript:[
+      {from:'ai',text:"Hi, I'm here. What's on your mind tonight?"},
+      {from:'user',text:"Feeling anxious about tomorrow's meeting."},
+      {from:'ai',text:'I hear you. Sometimes naming it helps it feel lighter.'},
+    ]},
+  ]},
+  { dateLabel:'Monday', dateValue: isoOffset(4), items:[
+    { id:'d', time:'6:58 AM', isNight:false, preview:'Woke up before my alarm, felt rested…', transcript:[
+      {from:'ai',text:'Good morning. How did you sleep?'},
+      {from:'user',text:'Really well actually, woke up before my alarm.'},
+      {from:'ai',text:"That's great to hear. What did you do differently last night?"},
+      {from:'user',text:'I put my phone away an hour earlier.'},
+    ]},
+    { id:'e', time:'10:50 PM', isNight:true, preview:'Mentioned scrolling on my phone too long again…', transcript:[
+      {from:'ai',text:"Hi, I'm here. What's on your mind tonight?"},
+      {from:'user',text:'I was scrolling on my phone way too long again.'},
+      {from:'ai',text:'Thank you for sharing that. Is there anything else keeping your mind busy tonight?'},
+    ]},
+  ]},
+  { dateLabel:'Last week', dateValue: isoOffset(10), items:[
+    { id:'f', time:'7:32 AM', isNight:false, preview:"Rough night, mentioned the neighbor's noise…", transcript:[
+      {from:'ai',text:'Good morning. How did you sleep?'},
+      {from:'user',text:'Rough night, the neighbors were really loud.'},
+      {from:'ai',text:"I'm sorry to hear that. Want to think through a plan for noise for next time?"},
+    ]},
+  ]},
+  { dateLabel:'Last week', dateValue: isoOffset(9), items:[
+    { id:'g', time:'11:05 PM', isNight:true, preview:'Talked through a stressful call with my sister…', transcript:[
+      {from:'ai',text:"Hi, I'm here. What's on your mind tonight?"},
+      {from:'user',text:'Had a stressful call with my sister earlier.'},
+      {from:'ai',text:"That sounds like it's been weighing on you. Want to tell me more?"},
+      {from:'user',text:'We disagreed about something small but it escalated.'},
+    ]},
+    { id:'h', time:'6:40 AM', isNight:false, preview:'Slept through the night for once, felt good…', transcript:[
+      {from:'ai',text:'Good morning. How did you sleep?'},
+      {from:'user',text:'Slept through the whole night for once!'},
+      {from:'ai',text:"That's wonderful. Let's remember what helped tonight."},
+    ]},
+  ]},
+];
+
+class Component extends DCLogic {
+  state = {
+    screen: this.props.initialScreen || 'auth',
+    authMode: 'login',
+    authPassword: '', authConfirmPassword: '',
+    activeTab: this.props.initialTab || 'checkin',
+    notifType: null, notifOpen: false,
+    checkinMode: this.props.initialScreen === 'chat' ? (this.props.initialCheckinMode || 'night') : null,
+    messages: [],
+    draft: '',
+    inputMode: 'stt',
+    isRecording: false,
+    micPermStatus: 'unasked', showMicPermModal: false,
+    bedtimeMode: false,
+    recapData: JSON.parse(JSON.stringify(RECAP_DATA)),
+    recapFilter: 'all',
+    selectedDate: '',
+    selectedEntryId: null,
+    showDeleteConfirm: false,
+    aiTyping: false,
+    expandedFactor: null,
+    age: 29,
+    isEditingAge: false,
+    ageDraft: '29',
+    lang: 'en',
+  };
+
+  componentDidMount() {
+    if (this.state.screen === 'chat' && this.state.messages.length === 0) {
+      this.seedGreeting(this.state.checkinMode);
+    }
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.messages.length !== prevState.messages.length && this.chatRef) {
+      this.chatRef.scrollTop = this.chatRef.scrollHeight;
+    }
+  }
+
+  seedGreeting(mode) {
+    const g = GREETINGS[this.state.lang];
+    const text = mode === 'morning' ? g.morning : g.night;
+    this.setState({ messages: [{ id: 1, from: 'ai', text }] });
+  }
+
+  setAuthMode = (mode) => this.setState({ authMode: mode, authPassword: '', authConfirmPassword: '' });
+  updateAuthPassword = (e) => this.setState({ authPassword: e.target.value });
+  updateAuthConfirmPassword = (e) => this.setState({ authConfirmPassword: e.target.value, authTouched: false });
+  submitAuth = () => {
+    if (this.state.authMode === 'signup' && this.state.authPassword !== this.state.authConfirmPassword) {
+      this.setState({ authTouched: true });
+      return;
+    }
+    this.goHome();
+  };
+  goHome = () => this.setState({ screen: 'home' });
+  setTab = (tab) => this.setState({ screen: 'home', activeTab: tab });
+
+  selectCheckin = (mode) => {
+    this.setState({ screen: 'chat', checkinMode: mode, messages: [] });
+    setTimeout(() => this.seedGreeting(mode), 50);
+  };
+
+  exitChat = () => this.setState({ screen: 'home', activeTab: 'checkin' });
+  updateDraft = (e) => this.setState({ draft: e.target.value });
+  handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.sendMessage(); }
+  };
+  toggleInputMode = () => this.setState(s => ({ inputMode: s.inputMode === 'stt' ? 'tts' : 'stt' }));
+
+  sendMessage = (overrideText) => {
+    const text = (overrideText !== undefined ? overrideText : this.state.draft).trim();
+    if (!text) return;
+    const userMsg = { id: Date.now(), from: 'user', text };
+    this.setState(s => ({ messages: [...s.messages, userMsg], draft: '', aiTyping: true }));
+    setTimeout(() => {
+      this.setState(s => {
+        const replies = (s.checkinMode === 'morning' ? MORNING_REPLIES : NIGHT_REPLIES)[s.lang];
+        const aiCount = s.messages.filter(m => m.from === 'ai').length;
+        const reply = replies[aiCount % replies.length];
+        return { messages: [...s.messages, { id: Date.now() + 1, from: 'ai', text: reply }], aiTyping: false };
+      });
+    }, 1300);
+  };
+
+  setRecapFilter = (filter) => this.setState({ recapFilter: filter });
+  updateSelectedDate = (e) => this.setState({ selectedDate: e.target.value });
+  clearSelectedDate = () => this.setState({ selectedDate: '' });
+  closeRecapDetail = () => this.setState({ selectedEntryId: null });
+  requestDeleteEntry = () => this.setState({ showDeleteConfirm: true });
+  cancelDeleteEntry = () => this.setState({ showDeleteConfirm: false });
+  deleteEntry = () => {
+    this.setState(s => ({
+      recapData: s.recapData
+        .map(g => ({ dateLabel: g.dateLabel, items: g.items.filter(it => it.id !== s.selectedEntryId) }))
+        .filter(g => g.items.length > 0),
+      selectedEntryId: null,
+      showDeleteConfirm: false,
+    }));
+  };
+
+  startVoiceInput = () => {
+    if (this.state.draft.trim()) { this.sendMessage(); return; }
+    if (this.state.micPermStatus === 'unasked') { this.setState({ showMicPermModal: true }); return; }
+    if (this.state.micPermStatus === 'denied') return;
+    this.beginRecording();
+  };
+  beginRecording = () => {
+    this.setState({ isRecording: true });
+    setTimeout(() => {
+      this.setState({ isRecording: false });
+      this.sendMessage(STT_SAMPLE);
+    }, 1400);
+  };
+  allowMicPerm = () => { this.setState({ micPermStatus: 'granted', showMicPermModal: false }); this.beginRecording(); };
+  denyMicPerm = () => this.setState({ micPermStatus: 'denied', showMicPermModal: false });
+
+  toggleBedtime = () => this.setState(s => ({ bedtimeMode: !s.bedtimeMode }));
+  toggleFactor = (name) => this.setState(s => ({ expandedFactor: s.expandedFactor === name ? null : name }));
+  startEditAge = () => this.setState(s => ({ isEditingAge: true, ageDraft: String(s.age) }));
+  updateAgeDraft = (e) => this.setState({ ageDraft: e.target.value });
+  saveAge = () => {
+    const n = parseInt(this.state.ageDraft, 10);
+    this.setState({ age: (Number.isFinite(n) && n > 0) ? n : this.state.age, isEditingAge: false });
+  };
+  handleAgeKeyDown = (e) => { if (e.key === 'Enter') this.saveAge(); };
+  logOut = () => this.setState({ screen: 'auth', authMode: 'login', activeTab: 'checkin' });
+  setLang = (lang) => this.setState({ lang });
+
+  showNotifBanner = (type) => {
+    clearTimeout(this._notifTimer);
+    this.setState({ notifType: type, notifOpen: true });
+    this._notifTimer = setTimeout(() => this.setState({ notifOpen: false }), 6000);
+  };
+  previewNightNotif = () => this.showNotifBanner('night');
+  previewMorningNotif = () => this.showNotifBanner('morning');
+  dismissNotifBanner = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    clearTimeout(this._notifTimer);
+    this.setState({ notifOpen: false });
+  };
+  openNotifBanner = () => {
+    const type = this.state.notifType;
+    clearTimeout(this._notifTimer);
+    this.setState({ notifOpen: false });
+    if (type) this.selectCheckin(type);
+  };
+
+  renderVals() {
+    const s = this.state;
+    const t = UI[s.lang];
+    const theme = s.checkinMode === 'morning' ? MORNING : NIGHT;
+    const dayLabels = DAY_TR[s.lang];
+    const sleepData = [
+      { day:dayLabels[0], hours:5.2 }, { day:dayLabels[1], hours:6.8 }, { day:dayLabels[2], hours:7.4 },
+      { day:dayLabels[3], hours:4.9 }, { day:dayLabels[4], hours:7.9 }, { day:dayLabels[5], hours:8.3 }, { day:dayLabels[6], hours:6.1 },
+    ].map(d => ({
+      ...d,
+      barColor: d.hours < 7 ? '#B06A5A' : '#8C7FA3',
+      barHeightPct: Math.round(Math.min(100, (d.hours / 9) * 100)),
+    }));
+    const LEVEL_STYLES = {
+      High: { badgeBg:'rgba(176,106,90,0.2)', badgeColor:'#E2998A' },
+      Medium: { badgeBg:'rgba(192,138,99,0.18)', badgeColor:'#D9AD82' },
+      Low: { badgeBg:'rgba(140,127,163,0.18)', badgeColor:'#B7A6C9' },
+    };
+    const factorsRaw = [
+      { name:'Late caffeine intake', level:'High', occurrences:[
+        { label:'Nightly Check-in', time:'Today, 11:42 PM' },
+        { label:'Nightly Check-in', time:'Monday, 10:50 PM' },
+        { label:'Nightly Check-in', time:'Last week, 11:05 PM' },
+      ]},
+      { name:'Screen time before bed', level:'High', occurrences:[
+        { label:'Nightly Check-in', time:'Monday, 10:50 PM' },
+        { label:'Morning Check-in', time:'Yesterday, 7:15 AM' },
+      ]},
+      { name:'Work-related stress', level:'Medium', occurrences:[
+        { label:'Nightly Check-in', time:'Today, 11:42 PM' },
+        { label:'Nightly Check-in', time:'Last week, 11:05 PM' },
+      ]},
+      { name:'Irregular bedtime schedule', level:'Low', occurrences:[
+        { label:'Morning Check-in', time:'Last week, 7:32 AM' },
+      ]},
+    ];
+    const factors = factorsRaw.map((f, i) => ({
+      ...f,
+      name: FACTOR_NAME_TR[s.lang][f.name] || f.name,
+      level: t[f.level.toLowerCase()],
+      occurrences: f.occurrences.map(o => ({ label: CHECKIN_LABEL_TR[s.lang][o.label] || o.label, time: translateTimeWords(o.time, s.lang) })),
+      badgeBg: LEVEL_STYLES[f.level].badgeBg,
+      badgeColor: LEVEL_STYLES[f.level].badgeColor,
+      borderStyle: i === factorsRaw.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.06)',
+      expanded: s.expandedFactor === f.name,
+      chevronRotate: s.expandedFactor === f.name ? 'rotate(90deg)' : 'rotate(0deg)',
+      toggle: () => this.toggleFactor(f.name),
+    }));
+
+    const formatDate = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString(s.lang === 'id' ? 'id-ID' : 'en-US', { month: 'short', day: 'numeric' });
+    const recapGroups = s.recapData
+      .filter(g => !s.selectedDate || g.dateValue.slice(0, 7) === s.selectedDate)
+      .map(g => ({
+      dateLabel: (g.dateLabel === 'Monday' ? (DATE_LABEL_TR[s.lang][g.dateLabel] + ' · ' + formatDate(g.dateValue)) : DATE_LABEL_TR[s.lang][g.dateLabel]),
+      items: g.items
+        .filter(it => s.recapFilter === 'all' || (s.recapFilter === 'night' && it.isNight) || (s.recapFilter === 'morning' && !it.isNight))
+        .map(it => {
+          const isNight = it.isNight;
+          return {
+            ...it, isDay: !it.isNight, open: () => this.setState({ selectedEntryId: it.id }),
+            timeDisplay: g.dateLabel === 'Last week' ? (formatDate(g.dateValue) + ' · ' + it.time) : it.time,
+            cardBg: '#1F1B2E',
+            cardHover: '#26213A',
+            iconBg: isNight ? 'rgba(255,255,255,0.06)' : 'rgba(192,138,99,0.15)',
+            iconColor: isNight ? '#B7A6C9' : '#C08A63',
+          };
+        }),
+    })).filter(g => g.items.length > 0);
+
+    let selectedEntryObj = null;
+    s.recapData.forEach(g => g.items.forEach(it => { if (it.id === s.selectedEntryId) selectedEntryObj = { ...it, dateLabel: g.dateLabel }; }));
+    const detailTheme = selectedEntryObj && selectedEntryObj.isNight === false ? MORNING : NIGHT;
+    const detailMessages = selectedEntryObj ? selectedEntryObj.transcript.map((m, i) => ({
+      id: i, text: m.text, isCrisis: !!m.crisis, notCrisis: !m.crisis,
+      crisisPrefix: m.crisisPrefix, crisisPhone: m.crisisPhone, crisisSuffix: m.crisisSuffix,
+      align: m.from === 'user' ? 'flex-end' : 'flex-start',
+      bubbleBg: m.crisis ? 'rgba(196,109,102,0.32)' : (m.from === 'user' ? detailTheme.userBubble : detailTheme.card),
+      bubbleColor: detailTheme.text,
+    })) : [];
+
+    const messages = s.messages.map(m => ({
+      ...m,
+      align: m.from === 'user' ? 'flex-end' : 'flex-start',
+      bubbleBg: m.from === 'user' ? theme.userBubble : theme.card,
+      bubbleColor: theme.text,
+    }));
+
+    return {
+      starField: STAR_FIELD,
+      isAuth: s.screen === 'auth',
+      isHome: s.screen === 'home',
+      isChat: s.screen === 'chat',
+
+      notifIsNight: s.notifType === 'night',
+      notifIsMorning: s.notifType === 'morning',
+      notifTitle: s.notifType === 'morning' ? t.notifMorningTitle : t.notifNightTitle,
+      notifBody: s.notifType === 'morning' ? t.notifMorningBody : t.notifNightBody,
+      notifIconBg: s.notifType === 'morning' ? '#C08A63' : '#392A48',
+      notifIconColor: s.notifType === 'morning' ? '#2A1F16' : '#EDE7E2',
+      notifTransform: s.notifOpen ? 'translateY(0)' : 'translateY(-140px)',
+      previewNightNotif: this.previewNightNotif,
+      previewMorningNotif: this.previewMorningNotif,
+      dismissNotifBanner: this.dismissNotifBanner,
+      openNotifBanner: this.openNotifBanner,
+      isLogin: s.authMode === 'login',
+      isSignup: s.authMode === 'signup',
+      authPassword: s.authPassword,
+      authConfirmPassword: s.authConfirmPassword,
+      updateAuthPassword: this.updateAuthPassword,
+      updateAuthConfirmPassword: this.updateAuthConfirmPassword,
+      submitAuth: this.submitAuth,
+      showPasswordMismatch: !!s.authTouched && s.authMode === 'signup' && s.authPassword !== s.authConfirmPassword,
+      confirmPasswordBorder: (!!s.authTouched && s.authMode === 'signup' && s.authPassword !== s.authConfirmPassword) ? '#E05A5A' : 'rgba(255,255,255,0.08)',
+      setAuthLogin: () => this.setAuthMode('login'),
+      setAuthSignup: () => this.setAuthMode('signup'),
+      loginBg: s.authMode === 'login' ? '#392A48' : 'transparent',
+      loginColor: s.authMode === 'login' ? '#EDE7E2' : 'rgba(237,231,226,0.55)',
+      signupBg: s.authMode === 'signup' ? '#392A48' : 'transparent',
+      signupColor: s.authMode === 'signup' ? '#EDE7E2' : 'rgba(237,231,226,0.55)',
+      goHome: this.goHome,
+
+      isTabRecap: s.activeTab === 'recap',
+      isTabCheckin: s.activeTab === 'checkin',
+      isTabProfile: s.activeTab === 'profile',
+      setTabRecap: () => this.setTab('recap'),
+      setTabCheckin: () => this.setTab('checkin'),
+      setTabProfile: () => this.setTab('profile'),
+      recapTabColor: s.activeTab === 'recap' ? '#EDE7E2' : 'rgba(237,231,226,0.4)',
+      checkinTabColor: s.activeTab === 'checkin' ? '#EDE7E2' : 'rgba(237,231,226,0.4)',
+      profileTabColor: s.activeTab === 'profile' ? '#EDE7E2' : 'rgba(237,231,226,0.4)',
+      tabIndicatorLeft: 'calc(16px + ' + (s.activeTab === 'recap' ? 0 : s.activeTab === 'checkin' ? 1 : 2) + ' * ((100% - 32px)/3))',
+
+      selectNight: () => this.selectCheckin('night'),
+      selectMorning: () => this.selectCheckin('morning'),
+
+      deviceDark: !(s.screen === 'chat' && s.checkinMode === 'morning'),
+      chatBg: theme.bg, chatCard: theme.card, chatCardAlt: theme.cardAlt,
+      chatAccent: theme.accent, chatText: theme.text, chatSub: theme.sub, chatDivider: theme.divider,
+      chatModeLabel: s.checkinMode === 'morning' ? t.morningCheckin : t.nightlyCheckin,
+      exitChat: this.exitChat,
+      messages,
+      draft: s.draft,
+      updateDraft: this.updateDraft,
+      handleKeyDown: this.handleKeyDown,
+      sendMessage: () => this.sendMessage(),
+      hasDraft: s.draft.trim().length > 0,
+      noDraft: s.draft.trim().length === 0,
+      isSTT: s.inputMode === 'stt',
+      isTTS: s.inputMode === 'tts',
+      toggleInputMode: this.toggleInputMode,
+      isRecording: s.isRecording,
+      micAnim: s.isRecording ? 'micPulse 1s ease-in-out infinite' : 'none',
+      startVoiceInput: this.startVoiceInput,
+      showMicPermModal: s.showMicPermModal,
+      allowMicPerm: this.allowMicPerm,
+      denyMicPerm: this.denyMicPerm,
+      setChatRef: (el) => { this.chatRef = el; },
+
+      sleepData,
+      factors,
+      recapGroups,
+      recapFilter: s.recapFilter,
+      setFilterAll: () => this.setRecapFilter('all'),
+      setFilterNight: () => this.setRecapFilter('night'),
+      setFilterMorning: () => this.setRecapFilter('morning'),
+      filterAllBg: s.recapFilter === 'all' ? '#392A48' : 'rgba(255,255,255,0.04)',
+      filterAllColor: s.recapFilter === 'all' ? '#EDE7E2' : 'rgba(237,231,226,0.5)',
+      filterNightBg: s.recapFilter === 'night' ? '#392A48' : 'rgba(255,255,255,0.04)',
+      filterNightColor: s.recapFilter === 'night' ? '#EDE7E2' : 'rgba(237,231,226,0.5)',
+      filterMorningBg: s.recapFilter === 'morning' ? '#392A48' : 'rgba(255,255,255,0.04)',
+      filterMorningColor: s.recapFilter === 'morning' ? '#EDE7E2' : 'rgba(237,231,226,0.5)',
+      selectedDate: s.selectedDate,
+      hasSelectedDate: !!s.selectedDate,
+      monthFilterLabel: s.selectedDate ? new Date(s.selectedDate + '-01T00:00:00').toLocaleDateString(s.lang === 'id' ? 'id-ID' : 'en-US', { month: 'long', year: 'numeric' }) : t.month,
+      updateSelectedDate: this.updateSelectedDate,
+      clearSelectedDate: this.clearSelectedDate,
+
+      showRecapDetail: !!selectedEntryObj,
+      detailDateLabel: selectedEntryObj ? (DATE_LABEL_TR[s.lang][selectedEntryObj.dateLabel] || selectedEntryObj.dateLabel) : '',
+      detailTime: selectedEntryObj ? selectedEntryObj.time : '',
+      detailMessages,
+      detailBg: detailTheme.bg, detailCard: detailTheme.card, detailSub: detailTheme.sub,
+      detailText: detailTheme.text, detailDivider: detailTheme.divider,
+      closeRecapDetail: this.closeRecapDetail,
+      deleteEntry: this.requestDeleteEntry,
+      showDeleteConfirm: s.showDeleteConfirm,
+      confirmDeleteEntry: this.deleteEntry,
+      cancelDeleteEntry: this.cancelDeleteEntry,
+
+      aiTyping: s.aiTyping,
+      leftIconBg: s.inputMode === 'tts' ? theme.accent : 'transparent',
+      leftIconColor: s.inputMode === 'tts' ? '#FFFFFF' : theme.sub,
+      inputModeLabel: s.inputMode === 'stt' ? t.voiceInputCaption : t.aiVoiceCaption,
+
+      bedtimeFilter: s.bedtimeMode ? 'grayscale(1) brightness(0.78)' : 'none',
+      toggleBedtime: this.toggleBedtime,
+      bedtimeTrackBg: s.bedtimeMode ? '#6B5484' : 'rgba(237,231,226,0.15)',
+      bedtimeHandleLeft: s.bedtimeMode ? 20 : 2,
+      age: s.age,
+      isEditingAge: s.isEditingAge,
+      notEditingAge: !s.isEditingAge,
+      ageDraft: s.ageDraft,
+      startEditAge: this.startEditAge,
+      updateAgeDraft: this.updateAgeDraft,
+      saveAge: this.saveAge,
+      handleAgeKeyDown: this.handleAgeKeyDown,
+      logOut: this.logOut,
+      t,
+      lang: s.lang,
+      setLangEn: () => this.setLang('en'),
+      setLangId: () => this.setLang('id'),
+      langEnBg: s.lang === 'en' ? '#392A48' : 'transparent',
+      langEnColor: s.lang === 'en' ? '#EDE7E2' : 'rgba(237,231,226,0.45)',
+      langIdBg: s.lang === 'id' ? '#392A48' : 'transparent',
+      langIdColor: s.lang === 'id' ? '#EDE7E2' : 'rgba(237,231,226,0.45)',
+    };
+  }
+}
+
+</script>
+</body>
+</html>
