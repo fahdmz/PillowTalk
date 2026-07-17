@@ -8,6 +8,10 @@ from .analysis_normalizer import normalize_emotion_label
 PipelineFactory = Callable[..., Any]
 
 
+class MissingMLDependenciesError(RuntimeError):
+    """Raised when optional local ML dependencies are not installed."""
+
+
 @dataclass(frozen=True)
 class LocalEmotionPrediction:
     emotion: Emotion | None
@@ -85,7 +89,7 @@ def _default_pipeline_factory(
     try:
         from transformers import pipeline
     except ImportError as exc:
-        raise RuntimeError(
+        raise MissingMLDependenciesError(
             "Local emotion classification requires the ML dependencies. "
             "Install backend/requirements-ml.txt."
         ) from exc

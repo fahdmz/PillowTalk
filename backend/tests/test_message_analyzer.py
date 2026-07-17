@@ -2,7 +2,7 @@ import asyncio
 
 from app.schemas.analysis import AnalysisResult, AnalysisSource, Domain, Emotion, RiskLevel
 from app.services.analysis_service import MessageAnalyzer
-from app.services.classifier import LocalEmotionPrediction
+from app.services.classifier import LocalEmotionPrediction, MissingMLDependenciesError
 
 
 class FakeLocalClassifier:
@@ -16,6 +16,17 @@ class FakeLocalClassifier:
     def classify(self, text: str) -> LocalEmotionPrediction:
         self.calls.append(text)
         return self.prediction
+
+
+class FailingLocalClassifier:
+    model_id = "local/model"
+    revision = "abc123"
+
+    def __init__(self, error: Exception) -> None:
+        self.error = error
+
+    def classify(self, text: str) -> LocalEmotionPrediction:
+        raise self.error
 
 
 class FakeFallbackClassifier:
@@ -82,6 +93,20 @@ def test_uncertain_local_prediction_uses_foundry_fallback():
     assert len(fallback.calls) == 1
 
 
+def test_missing_ml_dependencies_use_foundry_fallback_without_crashing():
+    local = FailingLocalClassifier(
+        MissingMLDependenciesError("Install backend/requirements-ml.txt.")
+    )
+    fallback = FakeFallbackClassifier(foundry_result())
+    analyzer = MessageAnalyzer(local_classifier=local, fallback_classifier=fallback)
+
+    result = asyncio.run(analyzer.analyze("Aku capek karena kerja"))
+
+    assert result.emotion is Emotion.SADNESS
+    assert result.source is AnalysisSource.FOUNDRY_FALLBACK
+    assert len(fallback.calls) == 1
+
+
 def test_foundry_failure_degrades_to_mapped_local_prediction():
     local = FakeLocalClassifier(local_prediction(confidence=0.4, fallback=True))
     fallback = FakeFallbackClassifier(error=TimeoutError("Foundry timed out"))
@@ -107,4 +132,3 @@ def test_unmapped_local_prediction_without_fallback_returns_neutral_rules_result
     assert result.emotion is Emotion.NEUTRAL
     assert result.source is AnalysisSource.RULES
     assert result.model_id is None
-

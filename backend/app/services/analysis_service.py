@@ -7,7 +7,7 @@ from typing import Any
 
 from app.schemas.analysis import AnalysisResult, AnalysisSource, Emotion, RiskLevel
 from app.services.analysis_normalizer import extract_context
-from app.services.classifier import LocalEmotionPrediction
+from app.services.classifier import LocalEmotionPrediction, MissingMLDependenciesError
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,17 @@ class MessageAnalyzer:
         extracted = extract_context(text)
         try:
             local = self.local_classifier.classify(text)
+        except MissingMLDependenciesError as exc:
+            logger.warning(
+                "%s Falling back to Foundry/rules classification.",
+                exc,
+            )
+            local = LocalEmotionPrediction(
+                emotion=None,
+                confidence=0,
+                emotion_scores={},
+                requires_fallback=True,
+            )
         except Exception:
             # Missing/broken local model (e.g. ML deps not installed) must not
             # take down the whole chat turn — treat it the same as a
